@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   // 배포 주소가 정해지면 NEXT_PUBLIC_SITE_URL 환경변수만 바꾸면 OG 이미지 등 상대 경로가 모두 이 주소 기준으로 만들어짐
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pixs.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pixs-theta.vercel.app"),
   title: "PIXS (픽스) - 개인 셀러를 위한 올인원 무료 이미지 스튜디오",
   description:
     "설치 없이, 서버 비용 없이 100% 브라우저에서 안전하게! 1인 셀러와 소규모 쇼핑몰을 위한 네이버·쿠팡·아마존·쇼피 대표이미지 규격 맞춤, 상세페이지 분할·이어붙이기, 옵션 대량 편집, 용량 압축, 워터마크까지 무료로 해결하세요.",
