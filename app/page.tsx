@@ -359,6 +359,24 @@ const STORE_PRESETS: Omit<Preset, "kind">[] = [
   { id: "store-amazon-header", name: "아마존 스토어 헤더", width: 3000, height: 600, category: "스토어 상단 대표 배너 (와이드형)", description: "3000x600", strictWhiteBg: false, ratio: "자유", guidelineText: "아마존 스토어 헤더: 3000x600 (5:1) 와이드" },
 ];
 
+// 프로필·배너 파일명용 [마켓명, 배너유형]: {원본}_{마켓명}_{배너유형}_{가로x세로}.jpg (예: 로고원안_스마트스토어_PC상단배너_1920x400.jpg)
+const STORE_NAMING: Record<string, [string, string]> = {
+  "store-smartstore-logo": ["스마트스토어", "로고"],
+  "store-coupang-profile": ["쿠팡", "판매자프로필"],
+  "store-ably-zigzag-profile": ["에이블리·지그재그", "프로필"],
+  "store-toss-kakao-profile": ["토스·카카오", "스토어프로필"],
+  "store-musinsa-logo": ["무신사", "브랜드로고"],
+  "store-shopee-logo": ["쇼피", "샵로고"],
+  "store-qoo10-profile": ["큐텐재팬", "프로필"],
+  "store-smartstore-mobile-banner": ["스마트스토어", "모바일대표배너"],
+  "store-smartstore-pc-header": ["스마트스토어", "PC상단배너"],
+  "store-coupang-brand-header": ["쿠팡", "브랜드헤더배너"],
+  "store-zigzag-cover": ["지그재그", "스토어커버"],
+  "store-musinsa-banner": ["무신사", "브랜드메인배너"],
+  "store-shopee-cover": ["쇼피", "샵대표커버"],
+  "store-amazon-header": ["아마존", "스토어헤더"],
+};
+
 const PRESETS: Preset[] = [
   ...PRODUCT_PRESETS.map((p) => ({ ...p, kind: "product" as const })),
   ...STORE_PRESETS.map((p) => ({ ...p, kind: "store" as const })),
@@ -954,12 +972,18 @@ function BatchCard({
   onRemove,
   w,
   h,
+  fileName,
+  onSave,
+  saveDisabled,
 }: {
   item: BatchItem;
   mode: FillMode;
   onRemove: (id: number) => void;
   w: number;
   h: number;
+  fileName: string; // 저장될 결과 파일명
+  onSave: () => void;
+  saveDisabled: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -988,9 +1012,16 @@ function BatchCard({
       >
         ✕
       </button>
-      <p className="mt-1 text-[10px] text-slate-600 truncate" title={item.name}>
-        {item.name}
+      <p className="mt-1 text-[10px] text-slate-600 truncate" title={fileName}>
+        {fileName}
       </p>
+      <button
+        onClick={onSave}
+        disabled={saveDisabled}
+        className="mt-1 w-full rounded border border-slate-200 py-0.5 text-[10px] font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50 disabled:opacity-40"
+      >
+        ↓ 저장
+      </button>
     </div>
   );
 }
@@ -1202,11 +1233,13 @@ export default function Home() {
   const sanitizeName = (s: string) => s.replace(/[\\/:*?"<>|]/g, "_").trim();
   const srcBase = sanitizeName((selectedFile?.name ?? "image").replace(/\.[^.]+$/, "")) || "image";
 
-  // 규칙: {원본파일명}_{마켓명}_{가로x세로}.jpg (스토어 탭은 기존 픽스_배너_… 유지)
-  const presetFileName = (p: Preset) =>
-    tab === "store"
-      ? `픽스_배너_${sanitizeName(p.name)}_${p.width}x${p.height}.jpg`
+  // 규칙: 대표이미지 {원본파일명}_{마켓명}_{가로x세로}.jpg / 프로필·배너 {원본파일명}_{마켓명}_{배너유형}_{가로x세로}.jpg
+  const presetFileName = (p: Preset) => {
+    const store = STORE_NAMING[p.id];
+    return store
+      ? `${srcBase}_${sanitizeName(store[0])}_${sanitizeName(store[1])}_${p.width}x${p.height}.jpg`
       : `${srcBase}_${sanitizeName(p.name)}_${p.width}x${p.height}.jpg`;
+  };
 
   // 마켓 하나를 JPEG(품질 0.92)로 렌더링. 캔버스 재인코딩이라 EXIF·GPS 등 메타데이터는 결과에 포함되지 않음
   const renderPresetBlob = async (preset: Preset): Promise<Blob> => {
@@ -1265,8 +1298,7 @@ export default function Home() {
       }
 
       const content = await zip.generateAsync({ type: "blob" });
-      const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
-      saveAs(content, tab === "store" ? `픽스_배너_${stamp}.zip` : `PIXS_${srcBase}_대표이미지.zip`);
+      saveAs(content, tab === "store" ? `PIXS_${srcBase}_스토어배너.zip` : `PIXS_${srcBase}_대표이미지.zip`);
     } catch (err) {
       console.error(err);
       alert("변환 중 오류가 발생했습니다.");
@@ -1568,55 +1600,73 @@ export default function Home() {
 
   const removeBatchItem = (id: number) => setBatchItems((prev) => prev.filter((b) => b.id !== id));
 
+  // 결과 파일명: {원본파일명}_옵션_{가로x세로}.jpg (순번 방식은 앞에 01_, 02_ … 를 붙임)
+  const batchFileNames = (() => {
+    const used = new Set<string>();
+    const pad = Math.max(2, String(batchItems.length).length);
+    return batchItems.map((it, i) => {
+      const base = sanitizeName(it.name.replace(/\.[^.]+$/, "")) || "image";
+      const prefix = batchNaming === "seq" ? `${String(i + 1).padStart(pad, "0")}_` : "";
+      let name = `${prefix}${base}_옵션_${batchSizeLabel}.jpg`;
+      for (let n = 2; used.has(name); n++) name = `${prefix}${base}_옵션_${n}_${batchSizeLabel}.jpg`;
+      used.add(name);
+      return name;
+    });
+  })();
+  // ZIP 이름: PIXS_{첫번째원본파일명}_옵션대량편집.zip
+  const batchZipName = `PIXS_${sanitizeName((batchItems[0]?.name ?? "image").replace(/\.[^.]+$/, "")) || "image"}_옵션대량편집.zip`;
+
+  // 규격에 맞춰 JPEG(0.92)로 인코딩. 캔버스 재인코딩이라 EXIF는 포함되지 않음
+  const renderBatchBlob = async (canvas: HTMLCanvasElement, item: BatchItem): Promise<Blob> => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas context unavailable");
+    const { img, revoke } = await loadImageFromFile(item.file);
+    try {
+      canvas.width = batchDims.w; // 크기 재지정으로 이전 장 버퍼 초기화
+      canvas.height = batchDims.h;
+      drawThumbnail(ctx, img, batchDims.w, batchDims.h, batchFill, batchFill === "white" ? "#FFFFFF" : item.autoColor);
+    } finally {
+      revoke();
+      img.src = "";
+    }
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92));
+    if (!blob) throw new Error("toBlob failed");
+    return blob;
+  };
+
+  // 낱개 저장
+  const saveOneBatch = async (idx: number) => {
+    const item = batchItems[idx];
+    if (!item || isProcessing) return;
+    setIsProcessing(true);
+    const canvas = document.createElement("canvas");
+    try {
+      saveAs(await renderBatchBlob(canvas, item), batchFileNames[idx]);
+    } catch (err) {
+      console.error(err);
+      alert("변환 중 오류가 발생했습니다.");
+    } finally {
+      canvas.width = 0;
+      canvas.height = 0;
+      setIsProcessing(false);
+    }
+  };
+
   const convertBatchToZip = async () => {
     if (batchItems.length === 0) return;
+    if (batchItems.length === 1) return saveOneBatch(0); // 1장은 ZIP 없이 바로 저장
     setIsProcessing(true);
     setBatchProgress(0);
     const canvas = document.createElement("canvas"); // 전 장 공용 캔버스
-    canvas.width = batchDims.w;
-    canvas.height = batchDims.h;
-    const usedNames = new Set<string>();
 
     try {
       const zip = new JSZip();
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("canvas context unavailable");
-
       for (let i = 0; i < batchItems.length; i++) {
-        const item = batchItems[i];
-        const { img, revoke } = await loadImageFromFile(item.file);
-
-        canvas.width = batchDims.w; // 크기 재지정으로 이전 장 버퍼 초기화
-        canvas.height = batchDims.h;
-        drawThumbnail(ctx, img, batchDims.w, batchDims.h, batchFill, batchFill === "white" ? "#FFFFFF" : item.autoColor);
-        revoke();
-        img.src = "";
-
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92)
-        );
-        if (!blob) throw new Error("toBlob failed");
-
-        // 원본 파일명 기반: 픽스_옵션_red_500x500.jpg (중복 시 순번 부여)
-        const base = item.name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]/g, "_");
-        let fileName = `픽스_옵션_${base}_${batchSizeLabel}.jpg`;
-        for (let n = 2; usedNames.has(fileName); n++) {
-          fileName = `픽스_옵션_${base}_${n}_${batchSizeLabel}.jpg`;
-        }
-        // 순번 방식: 업로드 순서대로 01_, 02_ … (마켓 엑셀 대량 등록용, 순번이 있어 중복도 생기지 않음)
-        if (batchNaming === "seq") {
-          fileName = `${String(i + 1).padStart(Math.max(2, String(batchItems.length).length), "0")}_${base}.jpg`;
-        }
-        usedNames.add(fileName);
-        zip.file(fileName, blob);
-
+        zip.file(batchFileNames[i], await renderBatchBlob(canvas, batchItems[i]));
         setBatchProgress(i + 1);
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
-
-      const content = await zip.generateAsync({ type: "blob" });
-      const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
-      saveAs(content, `픽스_옵션_${batchSizeLabel}_${stamp}.zip`);
+      saveAs(await zip.generateAsync({ type: "blob" }), batchZipName);
     } catch (err) {
       console.error(err);
       alert("변환 중 오류가 발생했습니다. 장수를 줄이거나 다시 시도해 주세요.");
@@ -3050,8 +3100,8 @@ export default function Home() {
                 <div className="grid grid-cols-1 gap-2">
                   {(
                     [
-                      { id: "original", label: "원본 파일명 유지", desc: "픽스_옵션_red_500x500.jpg" },
-                      { id: "seq", label: "순번 파일명", desc: "01_red.jpg, 02_blue.jpg … (업로드 순서)" },
+                      { id: "original", label: "원본 파일명 유지", desc: "red_옵션_1000x1000.jpg" },
+                      { id: "seq", label: "순번 파일명", desc: "01_red_옵션_…, 02_blue_옵션_… (업로드 순서)" },
                     ] as { id: "original" | "seq"; label: string; desc: string }[]
                   ).map((o) => (
                     <button
@@ -3099,8 +3149,18 @@ export default function Home() {
 
               {batchItems.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {batchItems.map((item) => (
-                    <BatchCard key={item.id} item={item} mode={batchFill} onRemove={removeBatchItem} w={batchDims.w} h={batchDims.h} />
+                  {batchItems.map((item, idx) => (
+                    <BatchCard
+                      key={item.id}
+                      item={item}
+                      mode={batchFill}
+                      onRemove={removeBatchItem}
+                      w={batchDims.w}
+                      h={batchDims.h}
+                      fileName={batchFileNames[idx]}
+                      onSave={() => saveOneBatch(idx)}
+                      saveDisabled={isProcessing}
+                    />
                   ))}
                 </div>
               ) : (
@@ -3115,13 +3175,19 @@ export default function Home() {
                 className="w-full py-3.5 px-6 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing
-                  ? `변환 중... ${batchProgress}/${batchItems.length}`
-                  : batchItems.length > 0
-                    ? `총 ${batchItems.length}장의 옵션 썸네일 일괄 ZIP 다운로드`
-                    : "이미지를 먼저 업로드하세요"}
+                  ? batchItems.length > 1
+                    ? `변환 중... ${batchProgress}/${batchItems.length}`
+                    : "변환 중..."
+                  : batchItems.length === 0
+                    ? "이미지를 먼저 업로드하세요"
+                    : batchItems.length === 1
+                      ? "옵션 이미지 JPG 다운로드"
+                      : `총 ${batchItems.length}장의 옵션 이미지 전체 ZIP 다운로드`}
               </button>
               <p className="mt-2 text-[11px] text-slate-400">
-                JPEG 고화질(품질 0.92) · 파일명 예: 픽스_옵션_red_{batchSizeLabel}.jpg
+                JPEG 고화질(품질 0.92)로 저장되며 EXIF 메타데이터는 자동 제거됩니다.
+                {batchItems.length > 0 && ` 파일명 예: ${batchFileNames[0]}`}
+                {batchItems.length > 1 && ` · ZIP: ${batchZipName}`}
               </p>
             </div>
           </div>
