@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -3886,6 +3887,23 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* 푸터: 마켓별 규격 가이드 바로가기 */}
+        <footer className="border-t border-slate-200 pt-6 pb-2 text-center text-xs text-slate-500">
+          <nav aria-label="마켓별 이미지 규격 가이드" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 font-medium">
+            <span className="text-slate-400">마켓별 이미지 규격 가이드</span>
+            <Link href="/guide" className="hover:text-blue-600 hover:underline">
+              규격 가이드 전체
+            </Link>
+            <Link href="/guide/smartstore" className="hover:text-blue-600 hover:underline">
+              스마트스토어 대표이미지 사이즈
+            </Link>
+            <Link href="/guide/coupang" className="hover:text-blue-600 hover:underline">
+              쿠팡 상세페이지 가로 크기
+            </Link>
+          </nav>
+          <p className="mt-3 text-slate-400">© PIXS · 이미지는 서버로 전송되지 않고 내 브라우저에서만 처리됩니다.</p>
+        </footer>
 
       </div>
     </main>
