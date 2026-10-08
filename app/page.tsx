@@ -772,6 +772,69 @@ const compressFile = async (
   }
 };
 
+// 앱 설치 가이드 (PWA) — 브라우저별 홈 화면/바탕화면 추가 방법
+const INSTALL_GUIDES: { title: string; icon: "monitor" | "iphone" | "android"; steps: string[] }[] = [
+  {
+    title: "PC Chrome / Edge",
+    icon: "monitor",
+    steps: [
+      "브라우저 우측 상단 더보기 [⋮] 메뉴를 클릭하세요. (또는 주소창 우측 설치 아이콘 클릭)",
+      "[캐스팅, 저장, 공유] > [페이지를 앱으로 설치...]를 선택하세요.",
+      "팝업창에서 [설치]를 클릭하면 단독 앱 창으로 실행되고 바탕화면에 아이콘이 생성됩니다.",
+    ],
+  },
+  {
+    title: "모바일 Safari (아이폰)",
+    icon: "iphone",
+    steps: [
+      "하단 중앙의 공유 버튼(네모에 위 화살표)을 터치하세요.",
+      "아래로 스크롤하여 [홈 화면에 추가]를 선택하세요.",
+      "우측 상단 [추가]를 터치하면 앱 아이콘이 생성됩니다.",
+    ],
+  },
+  {
+    title: "모바일 Chrome (안드로이드)",
+    icon: "android",
+    steps: ["상단 더보기 [⋮] 메뉴를 터치하세요.", "[홈 화면에 추가] 또는 [앱 설치]를 터치하세요."],
+  },
+];
+
+function InstallIcon({ kind }: { kind: "monitor" | "iphone" | "android" }) {
+  const common = {
+    width: 22,
+    height: 22,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  if (kind === "monitor") {
+    return (
+      <svg {...common}>
+        <rect x="3" y="4" width="18" height="12" rx="2" />
+        <path d="M8 20h8M12 16v4" />
+      </svg>
+    );
+  }
+  if (kind === "iphone") {
+    return (
+      <svg {...common}>
+        <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+        <path d="M10.5 5.5h3M11 18.5h2" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2" />
+      <circle cx="12" cy="18" r="0.8" fill="currentColor" />
+    </svg>
+  );
+}
+
 // 탭 공통 '실무 추천 가이드' 박스 (강조 키워드는 <GuideEm>)
 function GuideBox({ children }: { children: React.ReactNode }) {
   return (
@@ -3214,6 +3277,41 @@ export default function Home() {
             ※ 마켓 정책은 수시로 바뀔 수 있으니 등록 전 각 마켓 판매자센터의 최신 가이드를 함께 확인하세요.
           </p>
         </div>
+
+        {/* 앱 설치 가이드 (PWA 홈 화면 추가) */}
+        <section className="rounded-2xl bg-slate-900 px-6 py-10 sm:px-10 text-white">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight break-keep">
+              앱처럼 더 빠르고 편리하게 PIXS 사용하기
+            </h2>
+            <p className="mx-auto max-w-2xl text-sm leading-relaxed text-slate-300 break-keep">
+              별도 다운로드 프로그램 없이, 바탕화면이나 홈 화면에 바로가기 앱을 등록해 작업창으로 바로 띄울 수 있습니다.
+            </p>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {INSTALL_GUIDES.map((g) => (
+              <div key={g.title} className="rounded-xl border border-slate-700 bg-slate-800/70 p-5">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-300">
+                    <InstallIcon kind={g.icon} />
+                  </span>
+                  <h3 className="text-sm font-bold leading-snug">{g.title}</h3>
+                </div>
+                <ol className="mt-4 space-y-3">
+                  {g.steps.map((s, i) => (
+                    <li key={i} className="flex gap-2.5 text-xs leading-relaxed text-slate-300">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500 text-[11px] font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <span className="break-keep">{s}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </section>
 
       </div>
     </main>
