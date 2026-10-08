@@ -148,20 +148,32 @@ interface MergeItem {
 }
 
 // 이미지 용량 압축·변환
-type CompFormat = "webp" | "jpg";
+type CompFormat = "webp" | "jpg" | "png";
 
-const COMP_PRESETS: { id: string; label: string; desc: string; quality: number }[] = [
-  { id: "high", label: "추천 고화질", desc: "품질 0.85 · 권장", quality: 0.85 },
-  { id: "diet", label: "용량 다이어트", desc: "품질 0.70", quality: 0.7 },
-  { id: "market", label: "마켓 제한 맞춤", desc: "장당 5MB 이하로 안전 압축", quality: 0.85 },
+const COMP_FORMATS: { id: CompFormat; label: string; desc: string; mime: string; ext: string }[] = [
+  { id: "webp", label: "WebP", desc: "로딩 최적화 권장", mime: "image/webp", ext: "webp" },
+  { id: "jpg", label: "JPG", desc: "호환성 우선", mime: "image/jpeg", ext: "jpg" },
+  { id: "png", label: "PNG", desc: "무손실·투명 유지", mime: "image/png", ext: "png" },
 ];
-const MARKET_LIMIT = 5 * 1024 * 1024;
+
+// 목표 용량 프리셋: mb가 null이면 목표 없이 품질 슬라이더 값만 적용
+const COMP_TARGETS: { id: string; label: string; desc: string; mb: number | null }[] = [
+  { id: "none", label: "목표 없음", desc: "품질 슬라이더 값 그대로", mb: null },
+  { id: "coupang", label: "쿠팡 권장 (2MB 이하)", desc: "모바일 로딩 최적", mb: 2 },
+  { id: "smartstore", label: "스마트스토어/상세 권장 (5MB 이하)", desc: "상세페이지·대표이미지 안전선", mb: 5 },
+  { id: "light", label: "초경량 모바일 최적화 (1MB 이하)", desc: "가장 가벼운 로딩", mb: 1 },
+  { id: "custom", label: "직접 용량 지정 (MB)", desc: "원하는 용량 입력", mb: null },
+];
+const COMP_QUALITY_MIN = 10;
+const COMP_QUALITY_FLOOR = 0.5; // 목표 용량 맞춤 시 화질을 여기까지만 낮추고, 그래도 크면 해상도를 줄임
 const RESIZE_MAX_W = 1920;
 
 interface CompResult {
   blob: Blob;
   size: number;
   kept: boolean; // 압축 결과가 더 커서 원본을 그대로 쓴 경우
+  quality: number | null; // 최종 적용 화질(%) — PNG·원본 유지는 null
+  scaledDown: boolean; // 목표 용량을 맞추기 위해 해상도를 줄인 경우
 }
 
 interface CompItem {
@@ -722,54 +734,97 @@ const loadImageFromFile = (file: File): Promise<{ img: HTMLImageElement; revoke:
   });
 
 // 한 장씩 디코딩 → 캔버스 인코딩 → 즉시 해제 (원본 용량이 커도 메모리를 한 장 분량으로 유지)
+// quality: 0.1~1 (PNG는 무손실이라 무시) / targetBytes: 있으면 그 용량 이하 중 가장 높은 화질을 이분 탐색으로 찾음
 const compressFile = async (
   file: File,
   format: CompFormat,
-  presetId: string,
+  quality: number,
+  targetBytes: number | null,
   resize: boolean
 ): Promise<CompResult> => {
   const { img, revoke } = await loadImageFromFile(file);
   const canvas = document.createElement("canvas");
+  const fmt = COMP_FORMATS.find((f) => f.id === format) ?? COMP_FORMATS[0];
   try {
-    const mime = format === "webp" ? "image/webp" : "image/jpeg";
-    let w = img.width;
-    let h = img.height;
-    if (resize && w > RESIZE_MAX_W) {
-      h = Math.round((h * RESIZE_MAX_W) / w);
-      w = RESIZE_MAX_W;
+    let baseW = img.width;
+    let baseH = img.height;
+    if (resize && baseW > RESIZE_MAX_W) {
+      baseH = Math.round((baseH * RESIZE_MAX_W) / baseW);
+      baseW = RESIZE_MAX_W;
     }
-    const resized = w !== img.width;
-    let q = COMP_PRESETS.find((p) => p.id === presetId)?.quality ?? 0.85;
-    let blob: Blob | null = null;
+    const resized = baseW !== img.width;
 
-    // 마켓 제한 모드: 5MB 이하가 될 때까지 품질 → 해상도 순으로 단계적으로 낮춤
-    for (let attempt = 0; attempt < 12; attempt++) {
-      canvas.width = w;
-      canvas.height = h;
+    const encode = async (cw: number, ch: number, q: number): Promise<Blob> => {
+      canvas.width = cw; // 크기 재지정으로 이전 시도의 버퍼 초기화
+      canvas.height = ch;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("canvas context unavailable");
       if (format === "jpg") {
         ctx.fillStyle = "#FFFFFF"; // JPEG는 투명 미지원
-        ctx.fillRect(0, 0, w, h);
+        ctx.fillRect(0, 0, cw, ch);
       }
-      ctx.drawImage(img, 0, 0, w, h);
-      blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), mime, q));
+      ctx.drawImage(img, 0, 0, cw, ch);
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), fmt.mime, format === "png" ? undefined : q)
+      );
       if (!blob) throw new Error("인코딩에 실패했습니다.");
-      if (blob.type !== mime) throw new Error("이 브라우저는 WebP 저장을 지원하지 않습니다. JPG를 선택해 주세요.");
-      if (presetId !== "market" || blob.size <= MARKET_LIMIT) break;
-      if (q > 0.5) q = Math.max(0.5, q - 0.1);
-      else {
-        w = Math.round(w * 0.85);
-        h = Math.round(h * 0.85);
-      }
-    }
-    if (!blob) throw new Error("인코딩에 실패했습니다.");
+      if (blob.type !== fmt.mime) throw new Error("이 브라우저는 WebP 저장을 지원하지 않습니다. JPG를 선택해 주세요.");
+      return blob;
+    };
 
-    // 이미 최적화된 JPG라 오히려 커졌다면 원본을 그대로 사용
-    if (format === "jpg" && file.type === "image/jpeg" && !resized && blob.size >= file.size) {
-      return { blob: file, size: file.size, kept: true };
+    let best: Blob | null = null;
+    let usedQuality = quality;
+    let scale = 1;
+    // 1순위 화질 보정 → 2순위 해상도 축소(PNG는 화질 조절이 없어 해상도만)
+    for (let step = 0; step < 8; step++) {
+      const cw = Math.max(1, Math.round(baseW * scale));
+      const ch = Math.max(1, Math.round(baseH * scale));
+      const first = await encode(cw, ch, quality);
+      if (targetBytes === null || first.size <= targetBytes) {
+        best = first;
+        usedQuality = quality;
+        break;
+      }
+      best = first;
+      if (format !== "png") {
+        const floorQ = Math.min(COMP_QUALITY_FLOOR, quality);
+        const atFloor = await encode(cw, ch, floorQ);
+        best = atFloor;
+        usedQuality = floorQ;
+        if (atFloor.size <= targetBytes) {
+          // 목표 안에 들어오는 가장 높은 화질을 이분 탐색
+          let lo = floorQ;
+          let hi = quality;
+          for (let i = 0; i < 5; i++) {
+            const mid = (lo + hi) / 2;
+            const b = await encode(cw, ch, mid);
+            if (b.size <= targetBytes) {
+              best = b;
+              usedQuality = mid;
+              lo = mid;
+            } else {
+              hi = mid;
+            }
+          }
+          break;
+        }
+      }
+      scale *= 0.85;
     }
-    return { blob, size: blob.size, kept: false };
+    if (!best) throw new Error("인코딩에 실패했습니다.");
+    const scaledDown = scale < 1;
+
+    // 이미 최적화된 파일이라 같은 포맷으로 변환했는데 오히려 커졌다면 원본을 그대로 사용
+    if (file.type === fmt.mime && !resized && !scaledDown && best.size >= file.size) {
+      return { blob: file, size: file.size, kept: true, quality: null, scaledDown: false };
+    }
+    return {
+      blob: best,
+      size: best.size,
+      kept: false,
+      quality: format === "png" ? null : Math.round(usedQuality * 100),
+      scaledDown,
+    };
   } finally {
     revoke();
     img.src = "";
@@ -944,7 +999,10 @@ export default function Home() {
   const mergeIdSeq = useRef<number>(0);
   const [compItems, setCompItems] = useState<CompItem[]>([]);
   const [compFormat, setCompFormat] = useState<CompFormat>("webp");
-  const [compPreset, setCompPreset] = useState<string>("high");
+  const [compQualityLive, setCompQualityLive] = useState<number>(85); // 슬라이더 표시값
+  const [compQuality, setCompQuality] = useState<number>(85); // 슬라이더가 멈춘 뒤 확정된 값(%)
+  const [compTargetId, setCompTargetId] = useState<string>("none");
+  const [compCustomMB, setCompCustomMB] = useState<string>("3");
   const [compResize, setCompResize] = useState<boolean>(false);
   const [compDragging, setCompDragging] = useState<boolean>(false);
   const compInputRef = useRef<HTMLInputElement>(null);
@@ -1278,7 +1336,23 @@ export default function Home() {
   };
 
   // 압축: 설정 값이 달라진 파일을 한 장씩 순서대로 자동 압축 (결과가 반영되면 다음 장으로 이어짐)
-  const compSig = `${compFormat}|${compPreset}|${compResize}`;
+  const compTargetOpt = COMP_TARGETS.find((t) => t.id === compTargetId) ?? COMP_TARGETS[0];
+  const customMB = Number(compCustomMB);
+  const compTargetMB =
+    compTargetOpt.id === "custom"
+      ? Number.isFinite(customMB) && customMB >= 0.1 && customMB <= 50
+        ? customMB
+        : null
+      : compTargetOpt.mb;
+  const compTargetBytes = compTargetMB === null ? null : Math.round(compTargetMB * 1024 * 1024);
+  const compQ = compQuality / 100;
+  const compSig = `${compFormat}|${compQuality}|${compTargetBytes ?? "none"}|${compResize}`;
+
+  // 슬라이더를 끄는 동안에는 재압축하지 않고, 멈춘 뒤 0.4초 후 값을 확정 (빠른 연속 변경 시 낭비 방지)
+  useEffect(() => {
+    const t = setTimeout(() => setCompQuality(compQualityLive), 400);
+    return () => clearTimeout(t);
+  }, [compQualityLive]);
   const compNext = compItems.find((it) => it.sig !== compSig);
   const compDone = compItems.filter((it) => it.sig === compSig).length;
   const compPending = compItems.length - compDone;
@@ -1288,7 +1362,7 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       try {
-        const result = await compressFile(compNext.file, compFormat, compPreset, compResize);
+        const result = await compressFile(compNext.file, compFormat, compQ, compTargetBytes, compResize);
         if (cancelled) return;
         setCompItems((prev) =>
           prev.map((p) => (p.id === compNext.id ? { ...p, sig: compSig, result, error: undefined } : p))
@@ -1305,7 +1379,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [tab, compNext, compSig, compFormat, compPreset, compResize]);
+  }, [tab, compNext, compSig, compFormat, compQ, compTargetBytes, compResize]);
 
   const addCompFiles = (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
@@ -1328,12 +1402,12 @@ export default function Home() {
   const downloadCompressed = async () => {
     const ready = compItems.filter((it) => it.result);
     if (ready.length === 0 || compPending > 0) return;
-    const ext = compFormat === "webp" ? "webp" : "jpg";
+    const ext = COMP_FORMATS.find((f) => f.id === compFormat)?.ext ?? "jpg";
     const used = new Set<string>();
     const named = ready.map((it) => {
       const base = it.name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]/g, "_");
-      let name = `${base}.${ext}`;
-      for (let n = 2; used.has(name); n++) name = `${base}_${n}.${ext}`;
+      let name = `${base}_압축.${ext}`; // {원본파일명}_압축.{확장자}
+      for (let n = 2; used.has(name); n++) name = `${base}_압축_${n}.${ext}`;
       used.add(name);
       return { name, blob: it.result!.blob };
     });
@@ -1344,9 +1418,7 @@ export default function Home() {
     }
     const zip = new JSZip();
     for (const f of named) zip.file(f.name, f.blob);
-    const content = await zip.generateAsync({ type: "blob" });
-    const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
-    saveAs(content, `픽스_압축_${stamp}.zip`);
+    saveAs(await zip.generateAsync({ type: "blob" }), "PIXS_압축이미지.zip");
   };
 
   // 탭 전환: 이전 탭의 이미지와 설정을 모두 초기화해 빈 대기 화면으로 시작
@@ -1383,7 +1455,10 @@ export default function Home() {
     // 탭 5 (용량 압축·변환)
     setCompItems([]);
     setCompFormat("webp");
-    setCompPreset("high");
+    setCompQualityLive(85);
+    setCompQuality(85);
+    setCompTargetId("none");
+    setCompCustomMB("3");
     setCompResize(false);
     setCompDragging(false);
     // 탭 7 (워터마크·로고 일괄 삽입)
@@ -2508,14 +2583,9 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">① 포맷</div>
+                <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">① 포맷 변환</div>
                 <div className="grid grid-cols-1 gap-2">
-                  {(
-                    [
-                      { id: "webp", label: "WebP 변환", desc: "쇼핑몰 로딩 최적화 권장" },
-                      { id: "jpg", label: "JPG 유지 압축", desc: "호환성 우선" },
-                    ] as { id: CompFormat; label: string; desc: string }[]
-                  ).map((f) => (
+                  {COMP_FORMATS.map((f) => (
                     <button
                       key={f.id}
                       onClick={() => setCompFormat(f.id)}
@@ -2530,42 +2600,91 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                <p className="text-[11px] text-slate-400">JPG·WebP·PNG 사이를 자유롭게 변환합니다.</p>
               </div>
 
               <div className="space-y-2">
-                <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">② 압축 강도</div>
+                <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">② 목표 용량 (원클릭 타깃 압축)</div>
                 <div className="grid grid-cols-1 gap-2">
-                  {COMP_PRESETS.map((p) => (
+                  {COMP_TARGETS.map((t) => (
                     <button
-                      key={p.id}
-                      onClick={() => setCompPreset(p.id)}
+                      key={t.id}
+                      onClick={() => setCompTargetId(t.id)}
                       className={`p-2.5 rounded-lg border text-left transition ${
-                        compPreset === p.id
+                        compTargetId === t.id
                           ? "border-blue-600 bg-blue-50/50 text-blue-900"
                           : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
                       }`}
                     >
-                      <div className="text-xs font-bold">{p.label}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{p.desc}</div>
+                      <div className="text-xs font-bold break-keep">{t.label}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{t.desc}</div>
                     </button>
                   ))}
                 </div>
+                {compTargetId === "custom" && (
+                  <label className="flex items-center gap-2 text-xs text-slate-600">
+                    <span className="font-semibold text-slate-700">목표</span>
+                    <input
+                      type="number"
+                      min={0.1}
+                      max={50}
+                      step={0.5}
+                      value={compCustomMB}
+                      onChange={(e) => setCompCustomMB(e.target.value)}
+                      className="w-20 rounded-md border border-slate-300 px-2 py-1 text-right text-xs focus:border-blue-500 focus:outline-none"
+                      aria-label="목표 용량(MB) 직접 입력"
+                    />
+                    <span>MB 이하 (0.1~50)</span>
+                  </label>
+                )}
+                {compTargetId === "custom" && compTargetMB === null && (
+                  <p className="text-[11px] text-amber-700">0.1~50 사이의 값을 입력하면 적용됩니다.</p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">③ 크기 조절</div>
-                <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={compResize}
-                    onChange={(e) => setCompResize(e.target.checked)}
-                    className="mt-0.5 h-3.5 w-3.5 rounded text-blue-600"
-                  />
-                  <span>
-                    <span className="block text-xs font-bold text-slate-700">가로폭 {RESIZE_MAX_W}px 초과 시 자동 축소</span>
-                    <span className="block text-[10px] text-slate-400 mt-0.5">불필요한 초고해상도를 줄여 용량을 크게 절감합니다</span>
-                  </span>
-                </label>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">③ 품질 조절</div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={COMP_QUALITY_MIN}
+                      max={100}
+                      step={5}
+                      value={compQualityLive}
+                      disabled={compFormat === "png"}
+                      onChange={(e) => setCompQualityLive(Number(e.target.value))}
+                      className="flex-1 accent-blue-600 disabled:opacity-40"
+                      aria-label="압축 품질"
+                    />
+                    <span className="w-12 text-right text-xs font-bold text-slate-700">
+                      {compFormat === "png" ? "무손실" : `${compQualityLive}%`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-slate-400 break-keep">
+                    {compFormat === "png"
+                      ? "PNG는 무손실이라 화질 슬라이더가 적용되지 않아요. 목표 용량은 해상도를 줄여 맞춥니다."
+                      : compTargetMB !== null
+                        ? `목표(${compTargetMB}MB)를 넘으면 화질을 이 값에서부터 자동으로 낮춰 목표 바로 아래로 맞춥니다.`
+                        : "값이 높을수록 화질이 좋고 용량이 커집니다. (권장 85%)"}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">④ 크기 조절</div>
+                  <label className="flex items-start gap-2 p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={compResize}
+                      onChange={(e) => setCompResize(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 rounded text-blue-600"
+                    />
+                    <span>
+                      <span className="block text-xs font-bold text-slate-700">가로폭 {RESIZE_MAX_W}px 초과 시 자동 축소</span>
+                      <span className="block text-[10px] text-slate-400 mt-0.5">불필요한 초고해상도를 줄여 용량을 크게 절감합니다</span>
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -2602,6 +2721,8 @@ export default function Home() {
                           <p className="text-[11px] text-slate-500">
                             원본 {formatBytes(it.file.size)}
                             {r && ` → ${formatBytes(r.size)}`}
+                            {r && r.quality !== null && <span className="text-slate-400"> · 화질 {r.quality}%</span>}
+                            {r && r.scaledDown && <span className="text-amber-600"> · 해상도 축소</span>}
                             {done && it.error && <span className="text-red-600"> · {it.error}</span>}
                             {!done && <span className="text-blue-600"> → 압축 중...</span>}
                           </p>
@@ -2619,8 +2740,14 @@ export default function Home() {
                             {r.kept ? "원본 유지" : saved > 0 ? `-${saved}% 절감` : `+${-saved}% 증가`}
                           </span>
                         )}
-                        {r && compPreset === "market" && r.size > MARKET_LIMIT && (
-                          <span className="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700">5MB 초과</span>
+                        {r && compTargetBytes !== null && (
+                          <span
+                            className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                              r.size <= compTargetBytes ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {r.size <= compTargetBytes ? `${compTargetMB}MB 이하 달성` : `${compTargetMB}MB 초과`}
+                          </span>
                         )}
                         <button
                           onClick={() => setCompItems((prev) => prev.filter((p) => p.id !== it.id))}
@@ -2641,6 +2768,16 @@ export default function Home() {
                 <p className="text-xs font-semibold text-slate-700">
                   총 {formatBytes(compItems.reduce((s, it) => s + it.file.size, 0))} →{" "}
                   {formatBytes(compItems.reduce((s, it) => s + (it.result?.size ?? it.file.size), 0))}
+                  {(() => {
+                    const before = compItems.reduce((s, it) => s + it.file.size, 0);
+                    const after = compItems.reduce((s, it) => s + (it.result?.size ?? it.file.size), 0);
+                    const pct = Math.round((1 - after / before) * 100);
+                    return (
+                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-bold ${pct > 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                        {pct > 0 ? `-${pct}% 절감` : `+${-pct}%`}
+                      </span>
+                    );
+                  })()}
                 </p>
               )}
             </div>
@@ -2657,7 +2794,7 @@ export default function Home() {
                     ? `압축 중... ${compDone}/${compItems.length}`
                     : compItems.filter((it) => it.result).length === 1
                       ? "압축 이미지 다운로드"
-                      : "압축 이미지 일괄 ZIP 다운로드"}
+                      : "전체 압축 결과 ZIP 다운로드 (PIXS_압축이미지.zip)"}
               </button>
             </div>
           </div>
