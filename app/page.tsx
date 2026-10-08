@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
-type Ratio = "1:1" | "3:4" | "자유";
+type Ratio = "1:1" | "3:4" | "4:5" | "자유";
 type PresetKind = "product" | "store";
 
 type TabId = PresetKind | "detail" | "batch" | "compress" | "merge" | "watermark";
@@ -323,11 +323,17 @@ const PRODUCT_PRESETS: Omit<Preset, "kind">[] = [
   { id: "ohou", name: "오늘의집", width: 1000, height: 1000, category: "국내 오픈마켓 (1:1)", description: "리빙/인테리어 1:1", strictWhiteBg: false, ratio: "1:1", guidelineText: "오늘의집: 리빙/인테리어 1:1 정방형" },
 
   // 2. 패션/버티컬 (3:4 세로형 & 감성몰)
-  { id: "ably", name: "에이블리", width: 600, height: 800, category: "패션/세로형 (3:4)", description: "세로 3:4 비율", strictWhiteBg: false, ratio: "3:4", guidelineText: "에이블리: 모바일 피드가 3:4 세로형이라 정방형·가로형 사진은 잘리거나 여백이 생김" },
-  { id: "zigzag", name: "지그재그", width: 600, height: 800, category: "패션/세로형 (3:4)", description: "착용컷 3:4 비율", strictWhiteBg: false, ratio: "3:4", guidelineText: "지그재그: 착용컷 위주 3:4 세로형 권장" },
-  { id: "musinsa", name: "무신사", width: 1000, height: 1333, category: "패션/세로형 (3:4)", description: "고해상도 3:4 규격", strictWhiteBg: false, ratio: "3:4", guidelineText: "무신사: 고해상도 3:4(1000x1333) 세로형" },
-  { id: "29cm", name: "29CM", width: 1000, height: 1000, category: "패션/세로형 (3:4)", description: "정방형 감성 룩북", strictWhiteBg: false, ratio: "1:1", guidelineText: "29CM: 정방형 감성 룩북 스타일 1:1" },
-  { id: "wconcept", name: "W컨셉", width: 1000, height: 1333, category: "패션/세로형 (3:4)", description: "디자이너 3:4 규격", strictWhiteBg: false, ratio: "3:4", guidelineText: "W컨셉: 디자이너 브랜드 3:4(1000x1333) 세로형" },
+  { id: "ably", name: "에이블리", width: 600, height: 800, category: "패션/버티컬", description: "세로 3:4 비율", strictWhiteBg: false, ratio: "3:4", guidelineText: "에이블리: 모바일 피드가 3:4 세로형이라 정방형·가로형 사진은 잘리거나 여백이 생김" },
+  { id: "zigzag", name: "지그재그", width: 600, height: 800, category: "패션/버티컬", description: "착용컷 3:4 비율", strictWhiteBg: false, ratio: "3:4", guidelineText: "지그재그: 착용컷 위주 3:4 세로형 권장" },
+  { id: "musinsa", name: "무신사", width: 1000, height: 1333, category: "패션/버티컬", description: "고해상도 3:4 규격", strictWhiteBg: false, ratio: "3:4", guidelineText: "무신사: 고해상도 3:4(1000x1333) 세로형" },
+  { id: "29cm", name: "29CM", width: 1000, height: 1000, category: "패션/버티컬", description: "정방형 감성 룩북", strictWhiteBg: false, ratio: "1:1", guidelineText: "29CM: 정방형 감성 룩북 스타일 1:1" },
+  { id: "wconcept", name: "W컨셉", width: 1000, height: 1333, category: "패션/버티컬", description: "디자이너 3:4 규격", strictWhiteBg: false, ratio: "3:4", guidelineText: "W컨셉: 디자이너 브랜드 3:4(1000x1333) 세로형" },
+  { id: "ably-square", name: "에이블리 정방형", width: 1000, height: 1000, category: "패션/버티컬", description: "1:1 권장 (3:4는 '에이블리')", strictWhiteBg: false, ratio: "1:1", guidelineText: "에이블리 정방형: 1000x1000 (1:1 권장), 3:4 세로형은 '에이블리(600x800)'를 함께 선택" },
+  { id: "musinsa-45", name: "무신사 고해상도", width: 1000, height: 1250, category: "패션/버티컬", description: "4:5 고해상도 표준", strictWhiteBg: false, ratio: "4:5", guidelineText: "무신사 고해상도: 1000x1250 (4:5) 세로형 표준, 3:4(1000x1333)는 '무신사'를 선택" },
+
+  // 2-1. 공동구매/지역 커머스
+  { id: "alwayz", name: "올웨이즈", width: 1000, height: 1000, category: "공동구매/지역", description: "1:1 정방형", strictWhiteBg: false, ratio: "1:1", guidelineText: "올웨이즈: 1000x1000 (1:1) 정방형" },
+  { id: "daangn-biz", name: "당근 비즈니스", width: 1000, height: 1000, category: "공동구매/지역", description: "전문판매·커머스 1:1", strictWhiteBg: false, ratio: "1:1", guidelineText: "당근 비즈니스: 1000x1000 (1:1) 정방형, 전문판매·커머스용" },
 
   // 3. 글로벌 1:1 고해상도
   { id: "amazon", name: "아마존", width: 1600, height: 1600, category: "글로벌 마켓", description: "RGB 255 순백색 필수", strictWhiteBg: true, ratio: "1:1", guidelineText: "아마존: RGB 255 순수 흰색 배경 필수, 상품이 이미지의 85% 이상 차지 권장" },
@@ -348,6 +354,8 @@ const STORE_PRESETS: Omit<Preset, "kind">[] = [
   { id: "store-musinsa-logo", name: "무신사 브랜드 로고", width: 500, height: 500, category: "스토어 로고 / 프로필 (1:1)", description: "500x500", strictWhiteBg: false, ratio: "1:1", guidelineText: "무신사 브랜드 로고: 500x500 정방형" },
   { id: "store-shopee-logo", name: "쇼피 (Shopee) 샵 로고", width: 300, height: 300, category: "스토어 로고 / 프로필 (1:1)", description: "300x300", strictWhiteBg: false, ratio: "1:1", guidelineText: "쇼피 샵 로고: 300x300 정방형" },
   { id: "store-qoo10-profile", name: "큐텐 재팬 프로필", width: 400, height: 400, category: "스토어 로고 / 프로필 (1:1)", description: "400x400", strictWhiteBg: false, ratio: "1:1", guidelineText: "큐텐 재팬 프로필: 400x400 정방형" },
+  { id: "store-alwayz-profile", name: "올웨이즈 프로필", width: 500, height: 500, category: "스토어 로고 / 프로필 (1:1)", description: "500x500", strictWhiteBg: false, ratio: "1:1", guidelineText: "올웨이즈 프로필: 500x500 정방형" },
+  { id: "store-daangn-profile", name: "당근 비즈 프로필", width: 640, height: 640, category: "스토어 로고 / 프로필 (1:1)", description: "640x640", strictWhiteBg: false, ratio: "1:1", guidelineText: "당근 비즈 프로필: 640x640 정방형" },
 
   // 그룹 2: 스토어 상단 대표 배너 (와이드형)
   { id: "store-smartstore-mobile-banner", name: "스마트스토어 모바일 대표배너", width: 750, height: 1000, category: "스토어 상단 대표 배너 (와이드형)", description: "750x1000", strictWhiteBg: false, ratio: "3:4", guidelineText: "스마트스토어 모바일 대표배너: 750x1000 3:4 세로형" },
@@ -357,6 +365,12 @@ const STORE_PRESETS: Omit<Preset, "kind">[] = [
   { id: "store-musinsa-banner", name: "무신사 브랜드 메인 배너", width: 1920, height: 600, category: "스토어 상단 대표 배너 (와이드형)", description: "1920x600", strictWhiteBg: false, ratio: "자유", guidelineText: "무신사 브랜드 메인 배너: 1920x600 와이드" },
   { id: "store-shopee-cover", name: "쇼피 샵 대표 커버", width: 1200, height: 600, category: "스토어 상단 대표 배너 (와이드형)", description: "1200x600", strictWhiteBg: false, ratio: "자유", guidelineText: "쇼피 샵 대표 커버: 1200x600 (2:1) 와이드" },
   { id: "store-amazon-header", name: "아마존 스토어 헤더", width: 3000, height: 600, category: "스토어 상단 대표 배너 (와이드형)", description: "3000x600", strictWhiteBg: false, ratio: "자유", guidelineText: "아마존 스토어 헤더: 3000x600 (5:1) 와이드" },
+  { id: "store-ably-cover", name: "에이블리 마켓 커버", width: 1080, height: 540, category: "스토어 상단 대표 배너 (와이드형)", description: "1080x540", strictWhiteBg: false, ratio: "자유", guidelineText: "에이블리 마켓 커버: 1080x540 (2:1) 와이드" },
+  { id: "store-musinsa-shop-banner", name: "무신사 브랜드 샵 배너", width: 1500, height: 500, category: "스토어 상단 대표 배너 (와이드형)", description: "1500x500", strictWhiteBg: false, ratio: "자유", guidelineText: "무신사 브랜드 샵 배너: 1500x500 (3:1) 와이드" },
+
+  // 피드/게시 이미지 (1:1)
+  { id: "store-alwayz-feed", name: "올웨이즈 피드 이미지", width: 1080, height: 1080, category: "피드/게시 이미지 (1:1)", description: "1080x1080", strictWhiteBg: false, ratio: "1:1", guidelineText: "올웨이즈 피드 이미지: 1080x1080 정방형" },
+  { id: "store-daangn-feed", name: "당근 비즈 피드 이미지", width: 1080, height: 1080, category: "피드/게시 이미지 (1:1)", description: "1080x1080", strictWhiteBg: false, ratio: "1:1", guidelineText: "당근 비즈 피드 이미지: 1080x1080 정방형" },
 ];
 
 // 프로필·배너 파일명용 [마켓명, 배너유형]: {원본}_{마켓명}_{배너유형}_{가로x세로}.jpg (예: 로고원안_스마트스토어_PC상단배너_1920x400.jpg)
@@ -375,6 +389,12 @@ const STORE_NAMING: Record<string, [string, string]> = {
   "store-musinsa-banner": ["무신사", "브랜드메인배너"],
   "store-shopee-cover": ["쇼피", "샵대표커버"],
   "store-amazon-header": ["아마존", "스토어헤더"],
+  "store-alwayz-profile": ["올웨이즈", "프로필"],
+  "store-daangn-profile": ["당근비즈", "프로필"],
+  "store-ably-cover": ["에이블리", "마켓커버"],
+  "store-musinsa-shop-banner": ["무신사", "브랜드샵배너"],
+  "store-alwayz-feed": ["올웨이즈", "피드이미지"],
+  "store-daangn-feed": ["당근비즈", "피드이미지"],
 };
 
 const PRESETS: Preset[] = [
@@ -647,7 +667,8 @@ const mergePieceSvg = (kind: "top" | "body" | "bottom"): { svg: string; h: numbe
 
 const CATEGORY_HINTS: Record<string, string> = {
   "국내 오픈마켓 (1:1)": "· 네이버·쿠팡 등 포털 검색 목록 표준 규격",
-  "패션/세로형 (3:4)": "· 에이블리·지그재그 등 모바일 패션 앱 피드 최적화",
+  "패션/버티컬": "· 에이블리·지그재그 등 모바일 패션 앱 피드 최적화",
+  "공동구매/지역": "· 올웨이즈·당근 등 공동구매·지역 기반 커머스",
 };
 
 const STRICT_WHITE_NOTICE = "해당 플랫폼은 마켓 규정에 따라 순백색(#FFFFFF)으로 강제 적용됩니다";
@@ -3729,13 +3750,13 @@ export default function Home() {
                               )}
                               <span
                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                  preset.ratio === "3:4"
+                                  preset.ratio === "3:4" || preset.ratio === "4:5"
                                     ? "bg-purple-100 text-purple-700"
                                     : "bg-slate-100 text-slate-600"
                                 }`}
                               >
-                                {preset.ratio === "3:4"
-                                  ? "▮ 3:4 세로형"
+                                {preset.ratio === "3:4" || preset.ratio === "4:5"
+                                  ? `▮ ${preset.ratio} 세로형`
                                   : preset.ratio === "1:1"
                                     ? "■ 1:1 정방형"
                                     : `▬ ${formatRatio(preset.width, preset.height)} 와이드`}
