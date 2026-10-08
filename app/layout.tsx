@@ -47,6 +47,12 @@ export const metadata: Metadata = {
     description: "1인 셀러와 소규모 쇼핑몰을 위한 100% 브라우저 기반 무료 이미지 작업실",
   },
   robots: { index: true, follow: true },
+  // 네이버 서치어드바이저 사이트 소유 확인
+  verification: {
+    other: {
+      "naver-site-verification": "6c28d09ea47e8bf5227b8f1b878052a0aa634055",
+    },
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
