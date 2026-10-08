@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,7 +12,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Next.js 14+ 규격: themeColor는 metadata가 아니라 viewport export에 둠 (metadata에 넣으면 빌드 경고)
+export const viewport: Viewport = {
+  themeColor: "#18181b",
+};
+
 export const metadata: Metadata = {
+  // 홈 화면에 추가했을 때 iOS 앱처럼 열리도록 (아이콘은 app/apple-icon.png 가 자동 연결됨)
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PIXS",
+  },
   // 배포 주소가 정해지면 NEXT_PUBLIC_SITE_URL 환경변수만 바꾸면 OG 이미지 등 상대 경로가 모두 이 주소 기준으로 만들어짐
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pixs-theta.vercel.app"),
   title: "PIXS (픽스) - 개인 셀러를 위한 올인원 무료 이미지 스튜디오",
@@ -47,8 +58,9 @@ export const metadata: Metadata = {
     description: "1인 셀러와 소규모 쇼핑몰을 위한 100% 브라우저 기반 무료 이미지 작업실",
   },
   robots: { index: true, follow: true },
-  // 네이버 서치어드바이저 사이트 소유 확인
+  // 구글 서치 콘솔 · 네이버 서치어드바이저 사이트 소유 확인
   verification: {
+    google: "hwRiSkjHN_Pt8P-VVkLV-yhgDA-gJ7uI1wyWgQeS_kc",
     other: {
       "naver-site-verification": "6c28d09ea47e8bf5227b8f1b878052a0aa634055",
     },
