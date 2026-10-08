@@ -128,6 +128,7 @@ const MERGE_WIDTHS: { id: string; label: string; width: number | null }[] = [
   { id: "coupang", label: "쿠팡·11번가·오픈마켓 (780px)", width: 780 },
   { id: "fashion", label: "패션 전문몰 무신사·29CM·지그재그 (1000px)", width: 1000 },
   { id: "global", label: "글로벌 아마존 A+·쇼피 상세 (970px)", width: 970 },
+  { id: "max", label: "원본 최대폭 맞춤 (가장 넓은 이미지 기준)", width: null },
   { id: "first", label: "원본 가로폭 유지 (첫 번째 이미지 기준)", width: null },
 ];
 
@@ -236,9 +237,14 @@ const computeCuts = (totalH: number, unit: number, mode: SplitMode): number[] =>
   return cuts;
 };
 
+const DETAIL_CHUNK_MIN = 500;
+const DETAIL_CHUNK_MAX = 10000;
+
 const DETAIL_CHUNKS: { value: number; label: string; desc: string }[] = [
+  { value: 1500, label: "1,500px 단위", desc: "모바일 세밀 분할" },
   { value: 2000, label: "2,000px 단위", desc: "모바일 최적화" },
   { value: 3000, label: "3,000px 단위", desc: "균형 권장" },
+  { value: 4000, label: "4,000px 단위", desc: "태블릿·PC 겸용" },
   { value: 5000, label: "5,000px 단위", desc: "PC 최적화" },
 ];
 
@@ -901,6 +907,7 @@ export default function Home() {
   const [tab, setTab] = useState<TabId>("product");
   const [detailWidthId, setDetailWidthId] = useState<string>("smartstore");
   const [chunkH, setChunkH] = useState<number>(3000);
+  const [chunkText, setChunkText] = useState<string>("3000"); // 직접 입력창 표시값
   const [splitProgress, setSplitProgress] = useState<number>(0);
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
   const [batchSizeId, setBatchSizeId] = useState<string>("sq1000");
@@ -1196,50 +1203,69 @@ export default function Home() {
     setManualCuts(cuts.map((c, k) => (k === i ? v : c)));
   };
 
+  // 파일명: {원본파일명}_상세_01.jpg (조각 수에 맞춰 번호 자릿수 패딩)
+  const detailBase = sanitizeName((selectedFile?.name ?? "detail").replace(/\.[^.]+$/, "")) || "detail";
+  const detailPad = Math.max(2, String(detailCount).length);
+  const detailPieceName = (i: number) => `${detailBase}_상세_${String(i + 1).padStart(detailPad, "0")}.jpg`;
+
+  // 조각 i를 전달받은 캔버스에 그려 JPEG(0.92)로 인코딩. 큰 원본은 소스 영역만 잘라 그리므로 조각 하나 분량의 버퍼만 사용
+  const encodeDetailPiece = async (canvas: HTMLCanvasElement, i: number): Promise<Blob> => {
+    const img = loadedImg;
+    if (!img) throw new Error("이미지가 없습니다.");
+    const scale = detailTargetW / img.width;
+    const y = boundaries[i];
+    const h = pieceHeights[i];
+
+    canvas.width = detailTargetW; // 크기 지정 시 이전 조각 버퍼가 초기화됨
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas context unavailable");
+    ctx.fillStyle = "#FFFFFF"; // JPEG는 투명 미지원
+    ctx.fillRect(0, 0, detailTargetW, h);
+    ctx.imageSmoothingQuality = "high";
+
+    const srcY = y / scale;
+    const srcH = Math.min(h / scale, img.height - srcY);
+    ctx.drawImage(img, 0, srcY, img.width, srcH, 0, 0, detailTargetW, h);
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92));
+    if (!blob) throw new Error("toBlob failed");
+    return blob;
+  };
+
+  // 조각 하나만 저장
+  const saveDetailPiece = async (i: number) => {
+    if (!loadedImg || isProcessing) return;
+    setIsProcessing(true);
+    const canvas = document.createElement("canvas");
+    try {
+      saveAs(await encodeDetailPiece(canvas, i), detailPieceName(i));
+    } catch (err) {
+      console.error(err);
+      alert("저장 중 오류가 발생했습니다.");
+    } finally {
+      canvas.width = 0;
+      canvas.height = 0;
+      setIsProcessing(false);
+    }
+  };
+
   const splitAndDownloadZip = async () => {
     if (!loadedImg || detailCount === 0) return;
     setIsProcessing(true);
     setSplitProgress(0);
-    // 캔버스 하나를 재사용하며 조각마다 순차 처리 → 메모리 사용량을 한 조각 분량으로 유지
+    // 캔버스 하나를 모든 조각이 재사용 → 10,000~30,000px 이상 긴 이미지도 메모리는 조각 한 장 분량으로 유지
     const canvas = document.createElement("canvas");
 
     try {
       const zip = new JSZip();
-      const img = loadedImg;
-      const scale = detailTargetW / img.width;
-      const pad = Math.max(2, String(detailCount).length);
-
       for (let i = 0; i < detailCount; i++) {
-        const y = boundaries[i];
-        const h = pieceHeights[i];
-
-        canvas.width = detailTargetW; // 크기 지정 시 이전 조각 버퍼가 초기화됨
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("canvas context unavailable");
-
-        ctx.fillStyle = "#FFFFFF"; // JPEG는 투명 미지원
-        ctx.fillRect(0, 0, detailTargetW, h);
-        ctx.imageSmoothingQuality = "high";
-
-        const srcY = y / scale;
-        const srcH = Math.min(h / scale, img.height - srcY);
-        ctx.drawImage(img, 0, srcY, img.width, srcH, 0, 0, detailTargetW, h);
-
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92)
-        );
-        if (!blob) throw new Error("toBlob failed");
-
-        zip.file(`픽스_상세페이지_${String(i + 1).padStart(pad, "0")}.jpg`, blob);
+        zip.file(detailPieceName(i), await encodeDetailPiece(canvas, i));
         setSplitProgress(i + 1);
         // 렌더링 스레드에 양보해 UI 멈춤 방지
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
-
-      const content = await zip.generateAsync({ type: "blob" });
-      const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
-      saveAs(content, `픽스_상세페이지_${stamp}.zip`);
+      saveAs(await zip.generateAsync({ type: "blob" }), `PIXS_${detailBase}_상세분할.zip`);
     } catch (err) {
       console.error(err);
       alert("분할 중 오류가 발생했습니다. 이미지가 너무 크면 분할 단위를 줄여 다시 시도해 주세요.");
@@ -1345,6 +1371,7 @@ export default function Home() {
     // 탭 3 (상세페이지 분할)
     setDetailWidthId("smartstore");
     setChunkH(3000);
+    setChunkText("3000");
     setSplitMode("equal");
     setManualCuts(null);
     // 탭 4 (옵션 이미지 대량 편집)
@@ -1675,7 +1702,27 @@ export default function Home() {
   // 상세페이지 이어붙이기
   const mergeWidthOpt = MERGE_WIDTHS.find((o) => o.id === mergeWidthId) ?? MERGE_WIDTHS[0];
   const mergeFormat = MERGE_FORMATS.find((o) => o.id === mergeFormatId) ?? MERGE_FORMATS[0];
-  const mergeTargetW = mergeWidthOpt.width ?? mergeItems[0]?.w ?? 0;
+  const mergeTargetW =
+    mergeWidthOpt.width ??
+    (mergeWidthOpt.id === "max" ? Math.max(0, ...mergeItems.map((it) => it.w)) : (mergeItems[0]?.w ?? 0));
+  // 결과 파일명: PIXS_{첫번째파일명}_상세이어붙이기.jpg (순서를 바꾸면 첫 번째 파일 기준으로 바뀜)
+  const mergeFirstBase =
+    sanitizeName((mergeItems[0]?.name ?? "merge").replace(/\.[^.]+$/, "")) || "merge";
+  const mergeFileName = `PIXS_${mergeFirstBase}_상세이어붙이기.${mergeFormat.ext}`;
+  const [mergeDragId, setMergeDragId] = useState<number | null>(null);
+  const [mergeOverId, setMergeOverId] = useState<number | null>(null);
+
+  // 드래그 앤 드롭 재정렬: 끌어온 항목을 놓은 항목의 위치로 이동
+  const moveMergeTo = (fromId: number, toId: number) =>
+    setMergeItems((prev) => {
+      const from = prev.findIndex((p) => p.id === fromId);
+      const to = prev.findIndex((p) => p.id === toId);
+      if (from < 0 || to < 0 || from === to) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
   const mergeHeights = mergeItems.map((it) => Math.round((it.h * mergeTargetW) / it.w));
   const mergeTotalH = mergeHeights.reduce((s, h) => s + h, 0);
   const mergeTooTall = mergeTotalH > mergeFormat.maxH;
@@ -1785,8 +1832,7 @@ export default function Home() {
       );
       if (!blob) throw new Error("인코딩에 실패했습니다.");
       if (blob.type !== mergeFormat.mime) throw new Error("이 브라우저는 WebP 저장을 지원하지 않습니다. JPG를 선택해 주세요.");
-      const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
-      saveAs(blob, `픽스_상세페이지_합본_${stamp}.${mergeFormat.ext}`);
+      saveAs(blob, mergeFileName);
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "이어붙이는 중 오류가 발생했습니다.");
@@ -2244,7 +2290,10 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-800">이어붙일 순서 ({mergeItems.length}장)</h3>
+                  <h3 className="text-sm font-bold text-slate-800">
+                    이어붙일 순서 ({mergeItems.length}장)
+                    {mergeItems.length > 1 && <span className="ml-2 text-[11px] font-medium text-slate-400">끌어서 순서 변경 가능</span>}
+                  </h3>
                   {mergeItems.length > 0 && (
                     <button
                       onClick={() => setMergeItems([])}
@@ -2258,7 +2307,36 @@ export default function Home() {
                 {mergeItems.length > 0 ? (
                   <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 max-h-[28rem] overflow-y-auto">
                     {mergeItems.map((it, idx) => (
-                      <li key={it.id} className="flex items-center gap-2 px-2.5 py-2 text-xs">
+                      <li
+                        key={it.id}
+                        draggable={!mergeBusy}
+                        onDragStart={(e) => {
+                          setMergeDragId(it.id);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", String(it.id)); // Firefox는 데이터가 있어야 드래그가 시작됨
+                        }}
+                        onDragOver={(e) => {
+                          if (mergeDragId === null) return;
+                          e.preventDefault();
+                          setMergeOverId(it.id);
+                        }}
+                        onDrop={(e) => {
+                          if (mergeDragId === null) return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          moveMergeTo(mergeDragId, it.id);
+                          setMergeDragId(null);
+                          setMergeOverId(null);
+                        }}
+                        onDragEnd={() => {
+                          setMergeDragId(null);
+                          setMergeOverId(null);
+                        }}
+                        className={`flex items-center gap-2 px-2.5 py-2 text-xs transition ${
+                          mergeDragId === it.id ? "opacity-40" : ""
+                        } ${mergeOverId === it.id && mergeDragId !== it.id ? "bg-blue-50 shadow-[inset_0_2px_0_0_#3b82f6]" : ""}`}
+                      >
+                        <span className="shrink-0 cursor-grab select-none text-slate-300" title="끌어서 순서 변경" aria-hidden>⠿</span>
                         <span className="w-5 shrink-0 text-center font-bold text-blue-600">{idx + 1}</span>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={it.thumbUrl} alt="" className="w-12 h-12 shrink-0 rounded border border-slate-200 object-cover object-top" />
@@ -2337,7 +2415,10 @@ export default function Home() {
                     ? "이어붙인 상세페이지 다운로드"
                     : "조각 이미지를 먼저 업로드하세요"}
               </button>
-              <p className="mt-2 text-[11px] text-slate-400">서버로 전송되지 않고 내 브라우저에서만 합성됩니다.</p>
+              <p className="mt-2 text-[11px] text-slate-400">
+                서버로 전송되지 않고 내 브라우저에서만 합성됩니다.
+                {mergeItems.length > 0 && ` 저장 파일명: ${mergeFileName}`}
+              </p>
             </div>
           </div>
         ) : tab === "compress" ? (
@@ -2845,6 +2926,7 @@ export default function Home() {
                 onClick={() => {
                   loadFile(new File([buildDetailSampleSvg()], "예시_긴상세페이지.svg", { type: "image/svg+xml" }));
                   setChunkH(2000); // 체험 시 분할선이 바로 보이도록 2,000px 기준으로 맞춤
+                  setChunkText("2000");
                 }}
                 className="w-full py-2 rounded-lg border border-blue-200 bg-blue-50 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
               >
@@ -3090,6 +3172,7 @@ export default function Home() {
                       key={o.value}
                       onClick={() => {
                         setChunkH(o.value);
+                        setChunkText(String(o.value));
                         setManualCuts(null);
                       }}
                       className={`p-2.5 rounded-lg border text-left transition ${
@@ -3103,6 +3186,30 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                <label className="flex items-center gap-2 text-xs text-slate-600">
+                  <span className="font-semibold text-slate-700">직접 입력</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={DETAIL_CHUNK_MIN}
+                    max={DETAIL_CHUNK_MAX}
+                    step={100}
+                    value={chunkText}
+                    onChange={(e) => {
+                      setChunkText(e.target.value);
+                      const n = Number(e.target.value);
+                      // 입력 도중(너무 작은 값)에는 반영하지 않고, 허용 범위 안의 값일 때만 적용
+                      if (Number.isFinite(n) && n >= DETAIL_CHUNK_MIN && n <= DETAIL_CHUNK_MAX) {
+                        setChunkH(Math.round(n));
+                        setManualCuts(null);
+                      }
+                    }}
+                    onBlur={() => setChunkText(String(chunkH))}
+                    className="w-24 rounded-md border border-slate-300 px-2 py-1 text-right text-xs focus:border-blue-500 focus:outline-none"
+                    aria-label="분할 기준 높이 직접 입력"
+                  />
+                  <span>px ({DETAIL_CHUNK_MIN.toLocaleString()}~{DETAIL_CHUNK_MAX.toLocaleString()})</span>
+                </label>
               </div>
 
               <div className="space-y-2">
@@ -3153,6 +3260,50 @@ export default function Home() {
                 )}
               </div>
 
+              {loadedImg && previewUrl && (
+                <div className="space-y-2">
+                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">
+                    조각별 미리보기 · 개별 저장
+                  </div>
+                  <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                    {pieceHeights.map((h, i) => {
+                      const thumbW = 72;
+                      const scaledFull = (detailScaledH / detailTargetW) * thumbW; // 썸네일 폭 기준 전체 이미지 높이
+                      const thumbH = Math.min(96, (h / detailTargetW) * thumbW);
+                      return (
+                        <li key={i} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-2">
+                          <div
+                            className="shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-100"
+                            style={{
+                              width: thumbW,
+                              height: thumbH,
+                              backgroundImage: `url(${previewUrl})`,
+                              backgroundSize: `${thumbW}px ${scaledFull}px`,
+                              backgroundPosition: `0 -${(boundaries[i] / detailTargetW) * thumbW}px`,
+                              backgroundRepeat: "no-repeat",
+                            }}
+                            aria-hidden
+                          />
+                          <div className="min-w-0 flex-1 text-xs">
+                            <p className="truncate font-semibold text-slate-800" title={detailPieceName(i)}>{detailPieceName(i)}</p>
+                            <p className="text-[11px] text-slate-400">
+                              {detailTargetW.toLocaleString()} x {h.toLocaleString()} px · {boundaries[i].toLocaleString()}~{boundaries[i + 1].toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => saveDetailPiece(i)}
+                            disabled={isProcessing}
+                            className="shrink-0 rounded-md border border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50 disabled:opacity-50"
+                          >
+                            ↓ 저장
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
               <GuideBox>
                 💡 <GuideEm>추천 가이드:</GuideEm> 스마트스토어 및 모바일 최적화에는 <GuideEm>[가로 860px]</GuideEm> +{" "}
                 <GuideEm>[2,000px 단위 분할]</GuideEm> 조합이 가장 깨짐 없이 안정적입니다.
@@ -3170,7 +3321,7 @@ export default function Home() {
                       ? `${detailCount}장으로 분할된 이미지 ZIP 다운로드`
                       : "이미지를 먼저 업로드하세요"}
                 </button>
-                <p className="mt-2 text-[11px] text-slate-400">JPEG 고화질(품질 0.92)로 저장되며, 파일명은 픽스_상세페이지_01.jpg 순으로 매겨집니다.</p>
+                <p className="mt-2 text-[11px] text-slate-400">JPEG 고화질(품질 0.92)로 저장되며, 파일명은 {detailBase}_상세_01.jpg 순으로, ZIP은 PIXS_{detailBase}_상세분할.zip 으로 저장됩니다.</p>
               </div>
             </div>
           ) : (
