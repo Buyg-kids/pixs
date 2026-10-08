@@ -22,29 +22,38 @@ const TABS: { id: TabId; label: string }[] = [
 // 워터마크·로고 일괄 삽입
 const WM_MAX = 30;
 type WmKind = "text" | "logo";
-type WmSize = "small" | "normal" | "large";
-type WmPos = "br" | "center" | "tl" | "tile";
+type WmPos = "tl" | "t" | "tr" | "l" | "center" | "r" | "bl" | "b" | "br" | "tile";
 
-const WM_SIZES: { id: WmSize; label: string; text: number; logo: number }[] = [
-  { id: "small", label: "작게", text: 0.035, logo: 0.15 },
-  { id: "normal", label: "보통", text: 0.055, logo: 0.25 },
-  { id: "large", label: "크게", text: 0.085, logo: 0.38 },
+// 9개 위치 격자 (행 순서대로)
+const WM_GRID: { id: WmPos; label: string; title: string }[] = [
+  { id: "tl", label: "↖", title: "좌측 상단" },
+  { id: "t", label: "↑", title: "상단 중앙" },
+  { id: "tr", label: "↗", title: "우측 상단" },
+  { id: "l", label: "←", title: "좌측 중앙" },
+  { id: "center", label: "●", title: "정중앙" },
+  { id: "r", label: "→", title: "우측 중앙" },
+  { id: "bl", label: "↙", title: "좌측 하단" },
+  { id: "b", label: "↓", title: "하단 중앙" },
+  { id: "br", label: "↘", title: "우측 하단 (권장)" },
 ];
-const WM_POSITIONS: { id: WmPos; label: string }[] = [
-  { id: "br", label: "우측 하단 (권장)" },
-  { id: "center", label: "중앙" },
-  { id: "tl", label: "좌측 상단" },
-  { id: "tile", label: "전체 바둑판 (반복 패턴)" },
+const WM_ROTATIONS: { v: number; label: string }[] = [
+  { v: 0, label: "수평 (0°)" },
+  { v: -45, label: "대각선 ↗ (-45°)" },
+  { v: 45, label: "대각선 ↘ (45°)" },
 ];
 const WM_PLACEHOLDER = "루나 공방 / DO NOT COPY";
+// 글꼴/로고 크기는 이미지 가로폭 대비 % (글꼴 높이 기준 / 로고 가로폭 기준)
+const WM_TEXT_SCALE = { min: 2, max: 14, def: 5.5 };
+const WM_LOGO_SCALE = { min: 10, max: 60, def: 25 };
 
 interface WmOptions {
   kind: WmKind;
   text: string;
   color: string;
-  size: WmSize;
+  scale: number; // 가로폭 대비 %
+  rotation: number; // 0, 45, -45 (도)
   pos: WmPos;
-  opacity: number; // 10~90 (%)
+  opacity: number; // 10~100 (%)
   logo: HTMLImageElement | null;
 }
 
@@ -58,11 +67,14 @@ interface WmItem {
 
 // 워터마크 합성: 크기는 이미지 가로폭 기준 비율이라 미리보기와 원본 해상도 결과가 같은 모양이 됨
 const drawWatermark = (ctx: CanvasRenderingContext2D, w: number, h: number, o: WmOptions) => {
-  const sizeOpt = WM_SIZES.find((s) => s.id === o.size) ?? WM_SIZES[1];
-  let sw = 0;
+  const rad = (o.rotation * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const tile = o.pos === "tile";
+  let sw = 0; // 회전 전 워터마크 크기
   let sh = 0;
   let fs = 0;
-  let stamp: (x: number, y: number) => void;
+  let stamp: (x: number, y: number) => void; // 좌상단 (x, y) 기준으로 그림
 
   ctx.save();
   if (o.kind === "text") {
@@ -71,19 +83,26 @@ const drawWatermark = (ctx: CanvasRenderingContext2D, w: number, h: number, o: W
       ctx.restore();
       return;
     }
-    fs = Math.max(10, w * sizeOpt.text);
-    ctx.font = `700 ${fs}px 'Malgun Gothic','Apple SD Gothic Neo',sans-serif`;
-    let tw = ctx.measureText(text).width;
-    if (o.pos !== "tile" && tw > w * 0.9) {
-      fs = (fs * w * 0.9) / tw; // 긴 문구는 이미지 폭을 넘지 않도록 축소
-      ctx.font = `700 ${fs}px 'Malgun Gothic','Apple SD Gothic Neo',sans-serif`;
-      tw = ctx.measureText(text).width;
-    }
-    sw = tw;
+    const setFont = (size: number) => {
+      ctx.font = `700 ${size}px 'Malgun Gothic','Apple SD Gothic Neo',sans-serif`;
+    };
+    fs = Math.max(10, (w * o.scale) / 100);
+    setFont(fs);
+    sw = ctx.measureText(text).width;
     sh = fs * 1.2;
+    if (!tile) {
+      // 회전한 뒤의 외곽 크기가 이미지를 넘지 않도록 축소
+      const fit = Math.min(1, (w * 0.9) / (sw * cos + sh * sin), (h * 0.9) / (sw * sin + sh * cos));
+      if (fit < 1) {
+        fs *= fit;
+        setFont(fs);
+        sw = ctx.measureText(text).width;
+        sh = fs * 1.2;
+      }
+    }
     ctx.fillStyle = o.color;
     ctx.textBaseline = "top";
-    ctx.shadowColor = o.color === "#FFFFFF" ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)"; // 밝은/어두운 배경 모두에서 읽히도록
+    ctx.shadowColor = isLightColor(o.color) ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)"; // 밝은/어두운 배경 모두에서 읽히도록
     ctx.shadowBlur = fs * 0.12;
     stamp = (x, y) => ctx.fillText(text, x, y + fs * 0.1);
   } else {
@@ -92,16 +111,21 @@ const drawWatermark = (ctx: CanvasRenderingContext2D, w: number, h: number, o: W
       ctx.restore();
       return;
     }
-    sw = w * sizeOpt.logo;
+    sw = (w * o.scale) / 100;
     sh = (sw * logo.height) / logo.width;
+    if (!tile) {
+      const fit = Math.min(1, (w * 0.9) / (sw * cos + sh * sin), (h * 0.9) / (sw * sin + sh * cos));
+      sw *= fit;
+      sh *= fit;
+    }
     stamp = (x, y) => ctx.drawImage(logo, x, y, sw, sh);
   }
 
   ctx.globalAlpha = o.opacity / 100;
-  const margin = w * 0.03;
-  if (o.pos === "tile") {
+  if (tile) {
+    // 격자 반복: 이미지 중심을 기준으로 선택한 각도로 기울여 전체를 덮음
     ctx.translate(w / 2, h / 2);
-    ctx.rotate(-Math.PI / 6);
+    ctx.rotate(rad);
     const gx = sw * 1.5;
     const gy = sh * 3;
     const r = Math.hypot(w, h) / 2;
@@ -109,15 +133,30 @@ const drawWatermark = (ctx: CanvasRenderingContext2D, w: number, h: number, o: W
     for (let y = -r; y < r; y += gy, row++) {
       for (let x = -r + (row % 2 ? gx / 2 : 0); x < r; x += gx) stamp(x, y);
     }
-  } else if (o.pos === "center") {
-    stamp((w - sw) / 2, (h - sh) / 2);
-  } else if (o.pos === "tl") {
-    stamp(margin, margin);
   } else {
-    stamp(w - sw - margin, h - sh - margin);
+    // 9칸 위치: 회전 후 외곽(bw x bh) 기준으로 가장자리 여백을 두고 배치한 뒤, 그 중심에서 회전해 그림
+    const bw = sw * cos + sh * sin;
+    const bh = sw * sin + sh * cos;
+    const m = w * 0.03;
+    const col = o.pos === "tl" || o.pos === "l" || o.pos === "bl" ? 0 : o.pos === "tr" || o.pos === "r" || o.pos === "br" ? 2 : 1;
+    const row = o.pos === "tl" || o.pos === "t" || o.pos === "tr" ? 0 : o.pos === "bl" || o.pos === "b" || o.pos === "br" ? 2 : 1;
+    const cx = col === 0 ? m + bw / 2 : col === 2 ? w - m - bw / 2 : w / 2;
+    const cy = row === 0 ? m + bh / 2 : row === 2 ? h - m - bh / 2 : h / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(rad);
+    stamp(-sw / 2, -sh / 2);
   }
   ctx.restore();
 };
+
+// #RRGGBB 색의 밝기 판별 (텍스트 그림자 색 결정용)
+function isLightColor(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return true;
+  const n = parseInt(m[1], 16);
+  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return lum > 140;
+}
 
 
 // 상세페이지 이어붙이기(병합)
@@ -974,7 +1013,10 @@ export default function Home() {
   const [wmItems, setWmItems] = useState<WmItem[]>([]);
   const [wmKind, setWmKind] = useState<WmKind>("text");
   const [wmText, setWmText] = useState<string>("");
-  const [wmSize, setWmSize] = useState<WmSize>("normal");
+  const [wmTextScale, setWmTextScale] = useState<number>(WM_TEXT_SCALE.def);
+  const [wmLogoScale, setWmLogoScale] = useState<number>(WM_LOGO_SCALE.def);
+  const [wmRotation, setWmRotation] = useState<number>(0);
+  const [wmPreviewId, setWmPreviewId] = useState<number | null>(null);
   const [wmColor, setWmColor] = useState<string>("#FFFFFF");
   const [wmPos, setWmPos] = useState<WmPos>("br");
   const [wmOpacity, setWmOpacity] = useState<number>(40);
@@ -1465,7 +1507,10 @@ export default function Home() {
     setWmItems([]);
     setWmKind("text");
     setWmText("");
-    setWmSize("normal");
+    setWmTextScale(WM_TEXT_SCALE.def);
+    setWmLogoScale(WM_LOGO_SCALE.def);
+    setWmRotation(0);
+    setWmPreviewId(null);
     setWmColor("#FFFFFF");
     setWmPos("br");
     setWmOpacity(40);
@@ -1621,33 +1666,36 @@ export default function Home() {
     kind: wmKind,
     text: wmText,
     color: wmColor,
-    size: wmSize,
+    scale: wmKind === "text" ? wmTextScale : wmLogoScale,
+    rotation: wmRotation,
     pos: wmPos,
     opacity: wmOpacity,
     logo: wmLogo,
   };
   const wmReady = wmKind === "text" ? wmText.trim().length > 0 : wmLogo !== null;
-  const wmFirst = wmItems[0];
+  // 미리보기 대상: 목록에서 선택한 이미지(없으면 첫 번째)
+  const wmSelected = wmItems.find((it) => it.id === wmPreviewId) ?? wmItems[0];
 
-  // 첫 번째 이미지에 설정값을 실시간 합성해 보여줌
+  // 선택한 이미지에 설정값을 실시간 합성해 보여줌
   useEffect(() => {
     const canvas = wmPreviewRef.current;
-    if (tab !== "watermark" || !canvas || !wmFirst) return;
+    if (tab !== "watermark" || !canvas || !wmSelected) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    canvas.width = wmFirst.small.width;
-    canvas.height = wmFirst.small.height;
-    ctx.drawImage(wmFirst.small, 0, 0);
+    canvas.width = wmSelected.small.width;
+    canvas.height = wmSelected.small.height;
+    ctx.drawImage(wmSelected.small, 0, 0);
     drawWatermark(ctx, canvas.width, canvas.height, {
       kind: wmKind,
       text: wmText,
       color: wmColor,
-      size: wmSize,
+      scale: wmKind === "text" ? wmTextScale : wmLogoScale,
+      rotation: wmRotation,
       pos: wmPos,
       opacity: wmOpacity,
       logo: wmLogo,
     });
-  }, [tab, wmFirst, wmKind, wmText, wmColor, wmSize, wmPos, wmOpacity, wmLogo]);
+  }, [tab, wmSelected, wmKind, wmText, wmColor, wmTextScale, wmLogoScale, wmRotation, wmPos, wmOpacity, wmLogo]);
 
   const addWmFiles = async (files: File[]) => {
     const images = files.filter((f) => f.type.startsWith("image/"));
@@ -1718,51 +1766,71 @@ export default function Home() {
     }
   };
 
+  // 결과 파일명: {원본파일명}_워터마크.jpg (같은 이름이 있으면 번호를 붙임)
+  const wmFileNames = (() => {
+    const used = new Set<string>();
+    return wmItems.map((it) => {
+      const base = sanitizeName(it.name.replace(/\.[^.]+$/, "")) || "image";
+      let name = `${base}_워터마크.jpg`;
+      for (let n = 2; used.has(name); n++) name = `${base}_워터마크_${n}.jpg`;
+      used.add(name);
+      return name;
+    });
+  })();
+
+  // 원본 해상도로 워터마크를 합성해 JPEG(0.92)로 인코딩 (캔버스는 호출한 쪽에서 재사용·해제)
+  const renderWmBlob = async (canvas: HTMLCanvasElement, item: WmItem): Promise<Blob> => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas context unavailable");
+    const { img, revoke } = await loadImageFromFile(item.file);
+    try {
+      canvas.width = img.width; // 크기 재지정으로 이전 장 버퍼 초기화
+      canvas.height = img.height;
+      ctx.fillStyle = "#FFFFFF"; // JPEG 저장용 (투명 PNG 대비)
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      drawWatermark(ctx, canvas.width, canvas.height, wmOptions); // 모든 이미지에 같은 설정을 동일하게 적용
+    } finally {
+      revoke();
+      img.src = "";
+    }
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92));
+    if (!blob) throw new Error("인코딩에 실패했습니다.");
+    return blob;
+  };
+
+  // 낱개 저장
+  const saveOneWatermarked = async (idx: number) => {
+    const item = wmItems[idx];
+    if (!item || !wmReady || wmBusy) return;
+    setWmBusy(true);
+    const canvas = document.createElement("canvas");
+    try {
+      saveAs(await renderWmBlob(canvas, item), wmFileNames[idx]);
+    } catch (err) {
+      console.error(err);
+      alert("워터마크를 삽입하는 중 오류가 발생했습니다.");
+    } finally {
+      canvas.width = 0;
+      canvas.height = 0;
+      setWmBusy(false);
+    }
+  };
+
   const applyWatermarkAndDownload = async () => {
     if (wmItems.length === 0 || !wmReady) return;
+    if (wmItems.length === 1) return saveOneWatermarked(0);
     setWmBusy(true);
     setWmProgress(0);
     const canvas = document.createElement("canvas"); // 전 장 공용 캔버스
-    const used = new Set<string>();
     try {
       const zip = new JSZip();
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("canvas context unavailable");
-
       for (let i = 0; i < wmItems.length; i++) {
-        const item = wmItems[i];
-        const { img, revoke } = await loadImageFromFile(item.file);
-        canvas.width = img.width; // 크기 재지정으로 이전 장 버퍼 초기화
-        canvas.height = img.height;
-        ctx.fillStyle = "#FFFFFF"; // JPEG 저장용 (투명 PNG 대비)
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        drawWatermark(ctx, canvas.width, canvas.height, wmOptions);
-        revoke();
-        img.src = "";
-
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92)
-        );
-        if (!blob) throw new Error("인코딩에 실패했습니다.");
-
-        const base = item.name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]/g, "_");
-        let name = `픽스_워터마크_${base}.jpg`;
-        for (let n = 2; used.has(name); n++) name = `픽스_워터마크_${base}_${n}.jpg`;
-        used.add(name);
-        zip.file(name, blob);
-
+        zip.file(wmFileNames[i], await renderWmBlob(canvas, wmItems[i]));
         setWmProgress(i + 1);
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
-
-      const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
-      if (wmItems.length === 1) {
-        const only = Object.values(zip.files)[0];
-        saveAs(await only.async("blob"), only.name); // 1장은 ZIP 없이 바로 다운로드
-      } else {
-        saveAs(await zip.generateAsync({ type: "blob" }), `픽스_워터마크_${stamp}.zip`);
-      }
+      saveAs(await zip.generateAsync({ type: "blob" }), "PIXS_워터마크.zip");
     } catch (err) {
       console.error(err);
       alert("워터마크를 삽입하는 중 오류가 발생했습니다.");
@@ -2040,8 +2108,8 @@ export default function Home() {
                   <div className="grid grid-cols-2 gap-2">
                     {(
                       [
-                        { id: "text", label: "텍스트 입력", desc: "스토어명·브랜드명" },
-                        { id: "logo", label: "로고 이미지 업로드", desc: "투명 배경 PNG 권장" },
+                        { id: "text", label: "텍스트 워터마크", desc: "스토어명·브랜드명" },
+                        { id: "logo", label: "로고 이미지 워터마크", desc: "투명 배경 PNG 권장" },
                       ] as { id: WmKind; label: string; desc: string }[]
                     ).map((o) => (
                       <button
@@ -2060,7 +2128,7 @@ export default function Home() {
                   </div>
 
                   {wmKind === "text" ? (
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-3 pt-1">
                       <input
                         type="text"
                         value={wmText}
@@ -2069,43 +2137,51 @@ export default function Home() {
                         maxLength={60}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
                       />
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-slate-700">크기</span>
-                          {WM_SIZES.map((s) => (
-                            <button
-                              key={s.id}
-                              onClick={() => setWmSize(s.id)}
-                              className={`px-2.5 py-1 rounded-md border font-medium transition ${
-                                wmSize === s.id ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 hover:bg-slate-50"
-                              }`}
-                            >
-                              {s.label}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-slate-700">색상</span>
-                          {[
-                            { v: "#FFFFFF", label: "화이트" },
-                            { v: "#000000", label: "블랙" },
-                          ].map((c) => (
-                            <button
-                              key={c.v}
-                              onClick={() => setWmColor(c.v)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-medium transition ${
-                                wmColor === c.v ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 hover:bg-slate-50"
-                              }`}
-                            >
-                              <span className="inline-block w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: c.v }} />
-                              {c.label}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="w-16 shrink-0 font-semibold text-slate-700">글꼴 크기</span>
+                        <input
+                          type="range"
+                          min={WM_TEXT_SCALE.min}
+                          max={WM_TEXT_SCALE.max}
+                          step={0.5}
+                          value={wmTextScale}
+                          onChange={(e) => setWmTextScale(Number(e.target.value))}
+                          className="flex-1 accent-blue-600"
+                          aria-label="글꼴 크기"
+                        />
+                        <span className="w-12 text-right font-bold text-slate-700">{wmTextScale}%</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+                        <span className="w-16 shrink-0 font-semibold text-slate-700">텍스트 색상</span>
+                        {[
+                          { v: "#FFFFFF", label: "화이트" },
+                          { v: "#000000", label: "블랙" },
+                        ].map((c) => (
+                          <button
+                            key={c.v}
+                            onClick={() => setWmColor(c.v)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-medium transition ${
+                              wmColor.toUpperCase() === c.v ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 hover:bg-slate-50"
+                            }`}
+                          >
+                            <span className="inline-block w-3 h-3 rounded-full border border-slate-300" style={{ backgroundColor: c.v }} />
+                            {c.label}
+                          </button>
+                        ))}
+                        <label className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 font-medium cursor-pointer hover:bg-slate-50">
+                          직접 선택
+                          <input
+                            type="color"
+                            value={wmColor}
+                            onChange={(e) => setWmColor(e.target.value.toUpperCase())}
+                            className="h-5 w-6 cursor-pointer border-0 bg-transparent p-0"
+                            aria-label="텍스트 색상 직접 선택"
+                          />
+                        </label>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-3 pt-1">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => wmLogoInputRef.current?.click()}
@@ -2125,50 +2201,84 @@ export default function Home() {
                           className="hidden"
                         />
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                        <span className="font-semibold text-slate-700">크기</span>
-                        {WM_SIZES.map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => setWmSize(s.id)}
-                            className={`px-2.5 py-1 rounded-md border font-medium transition ${
-                              wmSize === s.id ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 hover:bg-slate-50"
-                            }`}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="w-16 shrink-0 font-semibold text-slate-700">로고 크기</span>
+                        <input
+                          type="range"
+                          min={WM_LOGO_SCALE.min}
+                          max={WM_LOGO_SCALE.max}
+                          step={5}
+                          value={wmLogoScale}
+                          onChange={(e) => setWmLogoScale(Number(e.target.value))}
+                          className="flex-1 accent-blue-600"
+                          aria-label="로고 크기 비율"
+                        />
+                        <span className="w-12 text-right font-bold text-slate-700">{wmLogoScale}%</span>
                       </div>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">② 위치 배치</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {WM_POSITIONS.map((p) => (
+                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">② 위치 배치 (9개 위치 + 격자 반복)</div>
+                  <div className="flex flex-wrap items-start gap-4">
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {WM_GRID.map((g) => (
+                        <button
+                          key={g.id}
+                          onClick={() => setWmPos(g.id)}
+                          title={g.title}
+                          aria-label={g.title}
+                          className={`h-10 w-12 rounded-lg border text-sm font-bold transition ${
+                            wmPos === g.id
+                              ? "border-blue-600 bg-blue-50 text-blue-700"
+                              : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                          }`}
+                        >
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setWmPos("tile")}
+                      className={`rounded-lg border px-3 py-2 text-left text-xs font-bold transition ${
+                        wmPos === "tile"
+                          ? "border-blue-600 bg-blue-50/50 text-blue-900"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      전체 바둑판 (격자 반복)
+                      <span className="mt-0.5 block text-[10px] font-normal text-slate-400">무단 도용 방지에 가장 강력</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">③ 회전 각도</div>
+                  <div className="flex flex-wrap gap-2">
+                    {WM_ROTATIONS.map((r) => (
                       <button
-                        key={p.id}
-                        onClick={() => setWmPos(p.id)}
-                        className={`p-2.5 rounded-lg border text-xs font-bold transition ${
-                          wmPos === p.id
+                        key={r.v}
+                        onClick={() => setWmRotation(r.v)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                          wmRotation === r.v
                             ? "border-blue-600 bg-blue-50/50 text-blue-900"
-                            : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                         }`}
                       >
-                        {p.label}
+                        {r.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">③ 투명도</div>
+                  <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">④ 투명도</div>
                   <div className="flex items-center gap-3">
                     <input
                       type="range"
                       min={10}
-                      max={90}
+                      max={100}
                       step={5}
                       value={wmOpacity}
                       onChange={(e) => setWmOpacity(Number(e.target.value))}
@@ -2187,9 +2297,13 @@ export default function Home() {
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-sm font-bold text-slate-800">실시간 미리보기 (첫 번째 이미지)</h3>
-                {wmFirst ? (
+                <h3 className="text-sm font-bold text-slate-800">실시간 미리보기</h3>
+                {wmSelected ? (
                   <>
+                    <p className="truncate text-[11px] text-slate-500" title={wmSelected.name}>
+                      {wmSelected.name}
+                      {wmItems.length > 1 && " · 아래 목록에서 다른 이미지를 눌러 확인"}
+                    </p>
                     <div className="rounded-lg border border-slate-300 bg-slate-100 p-2">
                       <canvas ref={wmPreviewRef} className="block w-full h-auto rounded" />
                     </div>
@@ -2207,7 +2321,10 @@ export default function Home() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-800">업로드한 이미지 {wmItems.length}장</h3>
+                <h3 className="text-sm font-bold text-slate-800">
+                  업로드한 이미지 {wmItems.length}장
+                  {wmItems.length > 1 && <span className="ml-2 text-[11px] font-medium text-slate-400">눌러서 미리보기 · 모든 이미지에 같은 설정이 적용됩니다</span>}
+                </h3>
                 {wmItems.length > 0 && (
                   <button
                     onClick={() => setWmItems([])}
@@ -2221,19 +2338,38 @@ export default function Home() {
               {wmItems.length > 0 ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                   {wmItems.map((it, idx) => (
-                    <div key={it.id} className="relative rounded-lg border border-slate-200 bg-white p-1.5">
+                    <div
+                      key={it.id}
+                      onClick={() => setWmPreviewId(it.id)}
+                      className={`relative cursor-pointer rounded-lg border bg-white p-1.5 transition ${
+                        wmSelected?.id === it.id ? "border-blue-600 ring-2 ring-blue-200" : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={it.thumbUrl} alt={it.name} className="block w-full aspect-square rounded object-cover object-top" />
                       <span className="absolute top-0.5 left-0.5 rounded bg-slate-800/80 px-1 text-[10px] font-bold text-white">{idx + 1}</span>
                       <button
-                        onClick={() => setWmItems((prev) => prev.filter((p) => p.id !== it.id))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWmItems((prev) => prev.filter((p) => p.id !== it.id));
+                        }}
                         disabled={wmBusy}
                         aria-label={`${it.name} 삭제`}
                         className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-slate-800/80 text-white text-[11px] leading-none flex items-center justify-center hover:bg-red-500 disabled:opacity-40"
                       >
                         ✕
                       </button>
-                      <p className="mt-1 text-[10px] text-slate-600 truncate" title={it.name}>{it.name}</p>
+                      <p className="mt-1 text-[10px] text-slate-600 truncate" title={wmFileNames[idx]}>{wmFileNames[idx]}</p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          saveOneWatermarked(idx);
+                        }}
+                        disabled={!wmReady || wmBusy}
+                        className="mt-1 w-full rounded border border-slate-200 py-0.5 text-[10px] font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50 disabled:opacity-40"
+                      >
+                        ↓ 저장
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -2249,7 +2385,9 @@ export default function Home() {
                 className="w-full py-3.5 px-6 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {wmBusy
-                  ? `워터마크 삽입 중... ${wmProgress}/${wmItems.length}`
+                  ? wmItems.length > 1
+                    ? `워터마크 삽입 중... ${wmProgress}/${wmItems.length}`
+                    : "워터마크 삽입 중..."
                   : wmItems.length === 0
                     ? "이미지를 먼저 업로드하세요"
                     : !wmReady
@@ -2257,10 +2395,12 @@ export default function Home() {
                         ? "워터마크 문구를 입력하세요"
                         : "로고 파일을 선택하세요"
                       : wmItems.length === 1
-                        ? "워터마크 삽입 이미지 다운로드"
-                        : `${wmItems.length}장 워터마크 일괄 ZIP 다운로드`}
+                        ? "워터마크 적용 이미지 다운로드"
+                        : "전체 워터마크 적용 결과 ZIP 다운로드 (PIXS_워터마크.zip)"}
               </button>
-              <p className="mt-2 text-[11px] text-slate-400">원본 해상도 그대로 JPEG 고화질(품질 0.92)로 저장되며, 파일명은 픽스_워터마크_원본명.jpg 입니다.</p>
+              <p className="mt-2 text-[11px] text-slate-400">
+                원본 해상도 그대로 JPEG 고화질(품질 0.92)로 저장되며, 파일명은 {"{원본파일명}"}_워터마크.jpg 입니다.
+              </p>
             </div>
           </div>
         ) : tab === "merge" ? (
