@@ -1091,43 +1091,75 @@ export default function Home() {
     }
   };
 
+  // ── 대표이미지/배너 변환 ──────────────────────────────────────────────
+  const sanitizeName = (s: string) => s.replace(/[\\/:*?"<>|]/g, "_").trim();
+  const srcBase = sanitizeName((selectedFile?.name ?? "image").replace(/\.[^.]+$/, "")) || "image";
+
+  // 규칙: {원본파일명}_{마켓명}_{가로x세로}.jpg (스토어 탭은 기존 픽스_배너_… 유지)
+  const presetFileName = (p: Preset) =>
+    tab === "store"
+      ? `픽스_배너_${sanitizeName(p.name)}_${p.width}x${p.height}.jpg`
+      : `${srcBase}_${sanitizeName(p.name)}_${p.width}x${p.height}.jpg`;
+
+  // 마켓 하나를 JPEG(품질 0.92)로 렌더링. 캔버스 재인코딩이라 EXIF·GPS 등 메타데이터는 결과에 포함되지 않음
+  const renderPresetBlob = async (preset: Preset): Promise<Blob> => {
+    const img = loadedImg;
+    if (!img) throw new Error("이미지가 없습니다.");
+    const canvas = document.createElement("canvas");
+    canvas.width = preset.width;
+    canvas.height = preset.height;
+    try {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("canvas context unavailable");
+      // 순백색 필수 마켓은 사용자가 고른 여백 모드와 무관하게 #FFFFFF로 강제
+      const fill = resolveFill(preset, fillMode, bgColor);
+      drawThumbnail(ctx, img, canvas.width, canvas.height, fill.mode, fill.color);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92));
+      if (!blob) throw new Error("인코딩에 실패했습니다.");
+      return blob;
+    } finally {
+      canvas.width = 0; // 캔버스 버퍼 즉시 해제
+      canvas.height = 0;
+    }
+  };
+
+  const selectedPresetObjs = selectedPresets
+    .map((id) => PRESETS.find((p) => p.id === id))
+    .filter((p): p is Preset => !!p);
+
+  // 마켓 1개만 골랐을 때(JPG 바로 저장)와 개별 저장 버튼에서 사용
+  const downloadOnePreset = async (preset: Preset) => {
+    if (!selectedFile || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      saveAs(await renderPresetBlob(preset), presetFileName(preset));
+    } catch (err) {
+      console.error(err);
+      alert("변환 중 오류가 발생했습니다.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const processAndDownloadZip = async () => {
-    if (!selectedFile || selectedPresets.length === 0) return;
+    if (!selectedFile || selectedPresetObjs.length === 0) return;
+    if (selectedPresetObjs.length === 1) return downloadOnePreset(selectedPresetObjs[0]);
     setIsProcessing(true);
 
     try {
       const zip = new JSZip();
-      const img = loadedImg;
-      if (!img) return;
-
-      for (const presetId of selectedPresets) {
-        const preset = PRESETS.find((p) => p.id === presetId);
-        if (!preset) continue;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = preset.width;
-        canvas.height = preset.height;
-        const ctx = canvas.getContext("2d");
-
-        if (ctx) {
-          // 순백색 필수 마켓은 사용자가 고른 여백 모드와 무관하게 #FFFFFF로 강제
-          const fill = resolveFill(preset, fillMode, bgColor);
-          drawThumbnail(ctx, img, canvas.width, canvas.height, fill.mode, fill.color);
-
-          // Blob 변환 및 ZIP 추가
-          const blob = await new Promise<Blob | null>((resolve) =>
-            canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9)
-          );
-
-          if (blob) {
-            zip.file(`픽스_${tab === "store" ? "배너" : "대표이미지"}_${preset.name.replace(/[\\/:*?"<>|]/g, "_")}_${preset.width}x${preset.height}.jpg`, blob);
-          }
-        }
+      const used = new Set<string>();
+      for (const preset of selectedPresetObjs) {
+        const blob = await renderPresetBlob(preset); // 한 장씩 순차 처리
+        let name = presetFileName(preset);
+        for (let n = 2; used.has(name); n++) name = presetFileName(preset).replace(/\.jpg$/, `_${n}.jpg`);
+        used.add(name);
+        zip.file(name, blob);
       }
 
       const content = await zip.generateAsync({ type: "blob" });
       const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
-      saveAs(content, `픽스_${tab === "store" ? "배너" : "대표이미지"}_${stamp}.zip`);
+      saveAs(content, tab === "store" ? `픽스_배너_${stamp}.zip` : `PIXS_${srcBase}_대표이미지.zip`);
     } catch (err) {
       console.error(err);
       alert("변환 중 오류가 발생했습니다.");
@@ -3232,14 +3264,41 @@ export default function Home() {
                 className="w-full py-3.5 px-6 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
-                  <span>압축 파일 생성 중...</span>
+                  <span>{selectedPresets.length > 1 ? "압축 파일 생성 중..." : "이미지 변환 중..."}</span>
+                ) : selectedPresets.length === 1 ? (
+                  <span>선택한 마켓 이미지 JPG 다운로드</span>
                 ) : (
                   <>
-                    <span>선택한 {selectedPresets.length}개 플랫폼 이미지 일괄 ZIP 다운로드</span>
+                    <span>
+                      {selectedPresets.length > 1 ? "전체 마켓 결과 ZIP으로 일괄 다운로드" : "마켓을 선택하세요"}
+                      {selectedPresets.length > 1 && ` (${selectedPresets.length}개)`}
+                    </span>
                     <span className="text-xs bg-blue-500 py-0.5 px-2 rounded-full">1초 완성</span>
                   </>
                 )}
               </button>
+
+              {selectedFile && selectedPresetObjs.length > 1 && (
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-[11px] font-semibold text-slate-500">또는 마켓별로 하나씩 받기</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedPresetObjs.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => downloadOnePreset(p)}
+                        disabled={isProcessing}
+                        title={presetFileName(p)}
+                        className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50 disabled:opacity-50"
+                      >
+                        ↓ {p.name} <span className="text-slate-400">{p.width}x{p.height}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="mt-2 text-[11px] text-slate-400">
+                JPEG 고화질(품질 0.92)로 저장되며, 촬영 위치·기기 정보 같은 EXIF 메타데이터는 자동으로 제거됩니다.
+              </p>
             </div>
           </div>
           )}
