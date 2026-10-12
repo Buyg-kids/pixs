@@ -65,7 +65,11 @@ export const metadata: Metadata = {
   verification: {
     google: "hwRiSkjHN_Pt8P-VVkLV-yhgDA-gJ7uI1wyWgQeS_kc",
     other: {
-      "naver-site-verification": "6c28d09ea47e8bf5227b8f1b878052a0aa634055",
+      // 기존(vercel 주소)과 pixs.kr 소유확인 토큰을 함께 유지
+      "naver-site-verification": [
+        "6c28d09ea47e8bf5227b8f1b878052a0aa634055",
+        "dae686abb1455a8fdd365dfb62b5292cfed83e33",
+      ],
     },
   },
 };
