@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ADSENSE_CLIENT, SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,8 +25,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "PIXS",
   },
-  // 배포 주소가 정해지면 NEXT_PUBLIC_SITE_URL 환경변수만 바꾸면 OG 이미지 등 상대 경로가 모두 이 주소 기준으로 만들어짐
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pixs-theta.vercel.app"),
+  // canonical / OG url / OG 이미지 등 상대 경로는 모두 이 주소 기준으로 만들어짐 (도메인은 lib/site.ts 에서 관리)
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
   title: "PIXS (픽스) - 개인 셀러를 위한 올인원 무료 이미지 스튜디오",
   description:
     "설치 없이, 서버 비용 없이 100% 브라우저에서 안전하게! 1인 셀러와 소규모 쇼핑몰을 위한 네이버·쿠팡·아마존·쇼피 대표이미지 규격 맞춤, 상세페이지 분할·이어붙이기, 옵션 대량 편집, 용량 압축, 워터마크까지 무료로 해결하세요.",
@@ -49,6 +51,7 @@ export const metadata: Metadata = {
     description:
       "외주·포토샵 없이 브라우저에서 끝내는 1인 셀러 필수 이미지 작업. 규격 맞춤, 분할, 합치기, 대량 편집, 압축, 워터마크를 무료로 해결하세요.",
     siteName: "PIXS",
+    url: "/",
     type: "website",
     locale: "ko_KR",
   },
@@ -73,6 +76,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* 애드센스: 초기 HTML에 그대로 들어가야 사이트 소유 확인·심사 크롤러가 인식함 (next/script 는 data-nscript 속성이 붙고 클라이언트에서 삽입됨) */}
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

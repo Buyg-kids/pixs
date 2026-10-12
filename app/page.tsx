@@ -3901,6 +3901,20 @@ export default function Home() {
             <Link href="/guide/coupang" className="hover:text-blue-600 hover:underline">
               쿠팡 상세페이지 가로 크기
             </Link>
+            <Link href="/guide/fashion" className="hover:text-blue-600 hover:underline">
+              에이블리·무신사 3:4 규격
+            </Link>
+          </nav>
+          <nav aria-label="서비스 정보" className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 font-medium">
+            <Link href="/about" className="hover:text-blue-600 hover:underline">
+              서비스 소개
+            </Link>
+            <Link href="/privacy" className="hover:text-blue-600 hover:underline">
+              개인정보처리방침
+            </Link>
+            <Link href="/terms" className="hover:text-blue-600 hover:underline">
+              이용약관
+            </Link>
           </nav>
           <p className="mt-3 text-slate-400">© PIXS · 이미지는 서버로 전송되지 않고 내 브라우저에서만 처리됩니다.</p>
         </footer>
