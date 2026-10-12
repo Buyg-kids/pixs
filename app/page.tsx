@@ -1133,7 +1133,11 @@ export default function Home() {
 
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  const loadFile = (file: File) => {
+  // 1초 체험(샘플) 상태: 샘플 적용 직후 결과 근처에 비포/애프터 안내 칩을 띄움
+  const [sampleActive, setSampleActive] = useState(false);
+  const sampleChipRef = useRef<HTMLDivElement>(null);
+
+  const loadFile = (file: File, isSample = false) => {
     if (!file.type.startsWith("image/")) {
       alert("이미지 파일만 업로드할 수 있습니다.");
       return;
@@ -1147,6 +1151,7 @@ export default function Home() {
         return url;
       });
       setLoadedImg(img);
+      setSampleActive(isSample);
       setManualCuts(null);
       // 업로드 즉시 가장자리 색상을 추출해 두고, 자동 감지 모드로 전환
       setAutoColor(detectEdgeColor(img));
@@ -1158,6 +1163,20 @@ export default function Home() {
     };
     img.src = url;
   };
+
+  // 샘플 사진으로 1초 체험: 세로 3:4 샘플을 올리고 쿠팡(1:1 순백색) 규격을 바로 적용해 변환 결과를 보여 줌
+  const loadSample = () => {
+    loadFile(new File([SAMPLE_SVG], "예시_세로사진.svg", { type: "image/svg+xml" }), true);
+    setSelectedPresets((prev) => Array.from(new Set([...prev, "coupang"])));
+    setLastPresetId("coupang");
+  };
+
+  // 모바일에서는 샘플 적용 후 변환 결과(안내 칩)가 보이도록 부드럽게 스크롤
+  useEffect(() => {
+    if (sampleActive && window.innerWidth < 640) {
+      sampleChipRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [sampleActive]);
 
   // 미리보기 기준 플랫폼: 가장 최근에 선택한 플랫폼 (해제됐다면 선택 목록의 마지막)
   const previewPreset =
@@ -1538,6 +1557,7 @@ export default function Home() {
     setSelectedPresets(["smartstore", "coupang", "store-smartstore-logo"]);
     setLastPresetId("coupang");
     setModeNotice(null);
+    setSampleActive(false);
     setIsDragging(false);
     // 탭 3 (상세페이지 분할)
     setDetailWidthId("smartstore");
@@ -3263,6 +3283,22 @@ export default function Home() {
                     사진을 끌어다 놓거나 클릭하세요
                   </p>
                   <p className="text-[11px] text-slate-400">JPG, PNG, WebP 원본</p>
+                  {tab === "product" && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation(); // 드롭존의 파일 선택창이 같이 열리지 않도록
+                          loadSample();
+                        }}
+                        className="inline-flex max-w-full items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-200 transition hover:from-indigo-700 hover:to-blue-600 active:scale-95 sm:text-sm"
+                      >
+                        <span aria-hidden>⚡</span>
+                        <span>샘플 사진으로 1초 체험해보기</span>
+                      </button>
+                      <p className="mt-1.5 text-[10px] text-slate-400">내 사진이 없어도 바로 결과를 볼 수 있어요</p>
+                    </div>
+                  )}
                 </div>
               )}
               <input
@@ -3274,9 +3310,9 @@ export default function Home() {
               />
             </div>
 
-            {tab === "product" && (
+            {tab === "product" && previewUrl && (
               <button
-                onClick={() => loadFile(new File([SAMPLE_SVG], "예시_세로사진.svg", { type: "image/svg+xml" }))}
+                onClick={loadSample}
                 className="w-full py-2 rounded-lg border border-blue-200 bg-blue-50 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
               >
                 💡 예시 사진으로 1초 체험하기
@@ -3494,6 +3530,26 @@ export default function Home() {
                       }`}
                     />
                   </div>
+                  {sampleActive && tab === "product" && previewPreset && (
+                    <div
+                      ref={sampleChipRef}
+                      className="flex items-start gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-[11px] leading-relaxed text-indigo-900"
+                    >
+                      <p className="flex-1 break-keep">
+                        💡 원본 사진({formatRatio(loadedImg.width, loadedImg.height)})에 <strong>{previewPreset.name} 맞춤 여백</strong>이 자동으로 채워졌어요.
+                        위 원본과 비교해 보세요! ({previewPreset.width}x{previewPreset.height}px
+                        {previewPreset.strictWhiteBg ? ", 순백색 고정" : ""})
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSampleActive(false)}
+                        aria-label="안내 닫기"
+                        className="shrink-0 text-indigo-400 hover:text-indigo-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                   {previewPreset && (
                     previewPreset.strictWhiteBg ? (
                       <div className="text-[11px] leading-relaxed rounded-lg px-2.5 py-2 bg-amber-50 border border-amber-300 text-amber-800 font-semibold">
