@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import HomeSeoSection from "./_components/HomeSeoSection";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -604,7 +605,7 @@ const makeHeavyImageFile = async (name: string, w: number, h: number, seed: numb
 const MARKET_SIZE_GUIDES: { name: string; size: string; format: string }[] = [
   {
     name: "스마트스토어",
-    size: "최대 10MB (권장 5MB 이하)",
+    size: "최대 20MB (권장 2MB 이하, 웹 로딩 최적화)",
     format: "JPG, PNG, WebP 지원 (가로 860px 권장)",
   },
   {
@@ -3852,6 +3853,9 @@ export default function Home() {
             ※ 마켓 정책은 수시로 바뀔 수 있으니 등록 전 각 마켓 판매자센터의 최신 가이드를 함께 확인하세요.
           </p>
         </div>
+
+        {/* 메인 하단 SEO/정보성 텍스트: 썸네일 최적화 이유, 비율 비교, FAQ, 심층 가이드 링크 */}
+        <HomeSeoSection />
 
         {/* 앱 설치 가이드 (PWA 홈 화면 추가) */}
         <section className="rounded-2xl bg-slate-900 px-6 py-10 sm:px-10 text-white">
