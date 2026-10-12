@@ -23,4 +23,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* 한글이 단어 중간에서 끊기지 않게 어절 단위로 줄바꿈 (긴 영문·URL은 넘치지 않도록 break-word) */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }

@@ -63,7 +63,7 @@ const GUIDE_CARDS = [
   },
 ];
 
-const CARD = "rounded-2xl border border-slate-200 bg-white p-6 sm:p-8";
+const CARD = "rounded-2xl border border-slate-200 bg-white p-4 sm:p-8";
 
 export default function HomeSeoSection() {
   return (

@@ -1053,6 +1053,8 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("product");
+  // 모바일에서 덜 쓰는 세부 옵션(고급 압축, 여백 상세 등)을 접어 두는 토글 (sm 이상에서는 항상 펼침)
+  const [showAdv, setShowAdv] = useState(false);
   const [detailWidthId, setDetailWidthId] = useState<string>("smartstore");
   const [chunkH, setChunkH] = useState<number>(3000);
   const [chunkText, setChunkText] = useState<string>("3000"); // 직접 입력창 표시값
@@ -2063,18 +2065,18 @@ export default function Home() {
   const categories = Array.from(new Set(visiblePresets.map((p) => p.category)));
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto space-y-10">
+    <main className="min-h-screen bg-slate-50 text-slate-900 py-6 px-3 sm:py-12 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-10">
 
         {/* 헤더 */}
-        <header className="text-center pt-6 pb-4 space-y-8">
+        <header className="text-center pt-2 pb-2 space-y-5 sm:pt-6 sm:pb-4 sm:space-y-8">
           <span className="inline-flex items-center bg-blue-50 text-blue-700 border border-blue-100 text-xs sm:text-sm px-4 py-1.5 rounded-full font-semibold break-keep">
             ⚡ 프로그램 설치 없이 · 100% 무료 · 서버 업로드 없는 안전한 브라우저 편집
           </span>
 
           {/* 브랜드 로고 */}
           <div className="space-y-1">
-            <div className="text-5xl sm:text-6xl font-black tracking-tight text-slate-900">PIXS</div>
+            <div className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900">PIXS</div>
             <p className="text-xs sm:text-sm font-medium tracking-wide text-slate-500">
               Pixel Studio · 이커머스 이미지 스튜디오
             </p>
@@ -2117,7 +2119,7 @@ export default function Home() {
 
         {/* 워터마크·로고 일괄 삽입 */}
         {tab === "watermark" ? (
-          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+          <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
             <div className="space-y-3">
               <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">1</span>
@@ -2477,7 +2479,7 @@ export default function Home() {
             </div>
           </div>
         ) : tab === "merge" ? (
-          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+          <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
             <div className="space-y-3">
               <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">1</span>
@@ -2710,7 +2712,7 @@ export default function Home() {
             </div>
           </div>
         ) : tab === "compress" ? (
-          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+          <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
             <div className="space-y-3">
               <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">1</span>
@@ -2768,9 +2770,9 @@ export default function Home() {
                     용량이 클수록 모바일 페이지 로딩이 느려져 구매 전환율이 떨어집니다. 마켓 규격에 맞춰 최적화하세요.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0">
                   {MARKET_SIZE_GUIDES.map((g) => (
-                    <div key={g.name} className="rounded-lg border border-slate-200 bg-white p-2.5 text-[11px] leading-relaxed text-slate-600">
+                    <div key={g.name} className="w-56 shrink-0 sm:w-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[11px] leading-relaxed text-slate-600">
                       <p className="mb-1 text-xs font-bold text-slate-800">{g.name}</p>
                       <p className="break-keep">
                         <span className="mr-1 font-semibold text-slate-800">용량</span>
@@ -2856,6 +2858,15 @@ export default function Home() {
               </div>
 
               <div className="space-y-3">
+                <button
+                type="button"
+                onClick={() => setShowAdv((v) => !v)}
+                aria-expanded={showAdv}
+                className="sm:hidden w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-xs font-semibold text-slate-600"
+              >
+                {showAdv ? "세부 옵션 접기 ▲" : "세부 옵션 설정 ▼"}
+              </button>
+                <div className={`${showAdv ? "space-y-3" : "hidden"} sm:block sm:space-y-3`}>
                 <div className="space-y-2">
                   <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">③ 품질 조절</div>
                   <div className="flex items-center gap-3">
@@ -2897,6 +2908,7 @@ export default function Home() {
                       <span className="block text-[10px] text-slate-400 mt-0.5">불필요한 초고해상도를 줄여 용량을 크게 절감합니다</span>
                     </span>
                   </label>
+                </div>
                 </div>
               </div>
             </div>
@@ -3012,7 +3024,7 @@ export default function Home() {
             </div>
           </div>
         ) : tab === "batch" ? (
-          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+          <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
             <div className="space-y-3">
               <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">1</span>
@@ -3216,7 +3228,7 @@ export default function Home() {
           </div>
         ) : (
         /* 메인 작업 영역 */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8 bg-white p-4 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
 
           {/* 좌측: 이미지 업로드 & 미리보기 */}
           <div className="space-y-4">
@@ -3231,7 +3243,7 @@ export default function Home() {
               onDragEnter={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[220px] ${
+              className={`border-2 border-dashed rounded-xl p-4 sm:p-6 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[150px] sm:min-h-[220px] ${
                 isDragging
                   ? "border-blue-600 bg-blue-50"
                   : "border-slate-300 hover:border-blue-500 bg-slate-50"
@@ -3366,12 +3378,12 @@ export default function Home() {
             /* 여백 배경색 선택 */
             <div className="space-y-2 pt-2">
               <label className="text-xs font-semibold text-slate-700">여백 채움 방식</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0">
                 {FILL_MODES.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => handleModeClick(m.id)}
-                    className={`text-xs py-1.5 px-1 rounded-lg border font-medium transition ${
+                    className={`text-xs py-1.5 px-3 sm:px-1 shrink-0 whitespace-nowrap sm:whitespace-normal rounded-lg border font-medium transition ${
                       activeMode === m.id
                         ? "border-blue-600 bg-blue-50 text-blue-700 font-bold"
                         : isMixed && previewIsStrict && m.id === "white"
@@ -3392,6 +3404,15 @@ export default function Home() {
                 </p>
               )}
 
+              <button
+                type="button"
+                onClick={() => setShowAdv((v) => !v)}
+                aria-expanded={showAdv}
+                className="sm:hidden w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-xs font-semibold text-slate-600"
+              >
+                {showAdv ? "세부 옵션 접기 ▲" : "세부 옵션 설정 ▼"}
+              </button>
+              <div className={`${showAdv ? "space-y-2" : "hidden"} sm:block sm:space-y-2`}>
               {allStrict && !modeNotice && (
                 <p className="text-[11px] text-slate-500">
                   선택된 마켓은 모두 순백색 필수라 순백색으로 고정됩니다.
@@ -3442,6 +3463,8 @@ export default function Home() {
                   원본을 확대·블러 처리한 배경 위에 선명한 원본을 얹습니다. (Safari는 블러 미지원 시 단색으로 표시)
                 </p>
               )}
+
+              </div>
 
               {loadedImg && (
                 <div className="pt-1 space-y-1">
@@ -3509,7 +3532,7 @@ export default function Home() {
 
               <div className="space-y-2">
                 <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">① 가로폭 기준</div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
                   {DETAIL_WIDTHS.map((o) => (
                     <button
                       key={o.id}
@@ -3517,7 +3540,7 @@ export default function Home() {
                         setDetailWidthId(o.id);
                         setManualCuts(null);
                       }}
-                      className={`p-2.5 rounded-lg border text-left transition ${
+                      className={`w-40 shrink-0 sm:w-auto p-2.5 rounded-lg border text-left transition ${
                         detailWidthId === o.id
                           ? "border-blue-600 bg-blue-50/50 text-blue-900"
                           : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
@@ -3532,7 +3555,7 @@ export default function Home() {
 
               <div className="space-y-2">
                 <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">② 분할 기준 높이</div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
                   {DETAIL_CHUNKS.map((o) => (
                     <button
                       key={o.value}
@@ -3541,7 +3564,7 @@ export default function Home() {
                         setChunkText(String(o.value));
                         setManualCuts(null);
                       }}
-                      className={`p-2.5 rounded-lg border text-left transition ${
+                      className={`w-40 shrink-0 sm:w-auto p-2.5 rounded-lg border text-left transition ${
                         chunkH === o.value
                           ? "border-blue-600 bg-blue-50/50 text-blue-900"
                           : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
@@ -3580,7 +3603,7 @@ export default function Home() {
 
               <div className="space-y-2">
                 <div className="border-b border-slate-100 pb-1 text-xs font-bold text-slate-700">③ 분할 방식</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0">
                   {SPLIT_MODES.map((o) => (
                     <button
                       key={o.id}
@@ -3588,7 +3611,7 @@ export default function Home() {
                         setSplitMode(o.id);
                         setManualCuts(null);
                       }}
-                      className={`p-2.5 rounded-lg border text-left transition ${
+                      className={`w-40 shrink-0 sm:w-auto p-2.5 rounded-lg border text-left transition ${
                         splitMode === o.id
                           ? "border-blue-600 bg-blue-50/50 text-blue-900"
                           : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
@@ -3719,14 +3742,14 @@ export default function Home() {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
                       {categoryPresets.map((preset) => {
                         const isChecked = selectedPresets.includes(preset.id);
                         return (
                           <div
                             key={preset.id}
                             onClick={() => togglePreset(preset.id)}
-                            className={`p-2.5 rounded-lg border text-left cursor-pointer transition select-none ${
+                            className={`w-36 shrink-0 snap-start sm:w-auto p-2.5 rounded-lg border text-left cursor-pointer transition select-none ${
                               isChecked
                                 ? "border-blue-600 bg-blue-50/50 text-blue-900"
                                 : "border-slate-200 bg-white hover:border-slate-300 text-slate-700"
@@ -3823,7 +3846,7 @@ export default function Home() {
         )}
 
         {/* 하단: SEO & 셀러 가이드라인 정보 블록 */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 space-y-4 text-xs text-slate-600 leading-relaxed">
+        <div className="bg-white p-4 sm:p-8 rounded-2xl border border-slate-200 space-y-4 text-xs text-slate-600 leading-relaxed">
           <h3 className="text-sm font-bold text-slate-800">💡 이커머스 대표이미지 등록 필수 가이드</h3>
           <div className="space-y-2">
             {GUIDES.map((g, i) => (
@@ -3858,7 +3881,7 @@ export default function Home() {
         <HomeSeoSection />
 
         {/* 앱 설치 가이드 (PWA 홈 화면 추가) */}
-        <section className="rounded-2xl bg-slate-900 px-6 py-10 sm:px-10 text-white">
+        <section className="rounded-2xl bg-slate-900 px-4 py-6 sm:px-10 sm:py-10 text-white">
           <div className="text-center space-y-2">
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight break-keep">
               앱처럼 더 빠르고 편리하게 PIXS 사용하기
