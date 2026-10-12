@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
 
-const TITLE = "쿠팡 윙·로켓그로스 썸네일 규격 & 이미지 반려 해결 가이드 (흰색 배경 RGB 255) | PIXS";
+const TITLE = "쿠팡 썸네일 순백색 배경 규격 및 대표이미지 반려 해결 가이드 | PIXS";
 const DESCRIPTION =
-  "쿠팡 대표이미지는 순백색(RGB 255, 255, 255) 배경과 상품 면적 기준이 핵심입니다. 쿠팡 윙·로켓그로스 썸네일 규격, 반려 사유별 해결법, 상세페이지 가로 780px, 판매자 프로필·브랜드 배너 규격을 실무 기준으로 정리했습니다.";
+  "쿠팡 윙/로켓그로스 대표이미지 순백색(RGB 255) 규정과 썸네일 반려 사유 해결법, 상품 면적 기준 및 상세페이지 가로 780px 규격 완벽 정리.";
 
 export const metadata: Metadata = {
   title: TITLE,

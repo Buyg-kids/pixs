@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
 
-const TITLE = "스마트스토어 대표이미지 사이즈(1000x1000) & 추가이미지·상세페이지 완벽 가이드 | PIXS";
+const TITLE = "스마트스토어 대표이미지 사이즈 1000x1000 규격 및 추가이미지 가이드 | PIXS";
 const DESCRIPTION =
-  "스마트스토어 대표이미지 1000x1000 규격, 용량(권장 2MB·최대 20MB), 노출 누락·불이익 사유, 추가 이미지 9장 배치 전략, 모바일 가독성, 상세페이지 가로 860px까지 실무 기준으로 정리했습니다.";
+  "네이버 쇼핑 검색 노출을 위한 스마트스토어 대표이미지 권장 규격(1000x1000), 용량 최적화, 추가이미지 9장 배치 팁 및 노출 불이익 예방 가이드.";
 
 export const metadata: Metadata = {
   title: TITLE,

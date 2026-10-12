@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
 
-const TITLE = "에이블리·지그재그·무신사 대표이미지 규격 (3:4 / 4:5) & 상세페이지 가이드 | PIXS";
+const TITLE = "에이블리·지그재그·무신사 썸네일 비율(3:4 / 4:5) 사이즈 가이드 | PIXS";
 const DESCRIPTION =
-  "패션 버티컬 플랫폼(에이블리·지그재그·무신사·W컨셉) 대표이미지 3:4·4:5 비율 사이즈, 상세페이지 가로 1000px, 스토어 프로필·배너 규격을 표로 정리했습니다. 3:4와 4:5의 차이와 촬영·편집 팁까지 확인하고 PIXS에서 바로 변환하세요.";
+  "패션 버티컬 플랫폼(에이블리, 지그재그, 무신사) 썸네일 권장 비율 3:4(1000x1333) 및 4:5(1000x1250) 세로형 이미지 최적화 가이드.";
 
 export const metadata: Metadata = {
   title: TITLE,
