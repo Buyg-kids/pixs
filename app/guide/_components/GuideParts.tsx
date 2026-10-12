@@ -31,6 +31,16 @@ export function GuideSection({ id, title, children }: { id?: string; title: stri
   );
 }
 
+// GuideSection(h2) 안에서 쓰는 소제목(h3)
+export function GuideSub({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2 pt-1">
+      <h3 className="text-base font-bold text-slate-900 break-keep">{title}</h3>
+      <div className="space-y-2 text-sm leading-relaxed text-slate-700 break-keep">{children}</div>
+    </div>
+  );
+}
+
 // 규격 표 (모바일에서는 가로 스크롤)
 export function SpecTable({ head, rows, caption }: { head: string[]; rows: string[][]; caption?: string }) {
   return (

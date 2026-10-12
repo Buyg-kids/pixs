@@ -21,6 +21,9 @@ export function SiteHeader() {
           <Link href="/guide/fashion" className="hover:text-blue-600">
             패션
           </Link>
+          <Link href="/about" className="hover:text-blue-600">
+            서비스 소개
+          </Link>
           <Link href="/" className="rounded-lg bg-blue-600 px-3 py-1.5 font-bold text-white hover:bg-blue-700">
             스튜디오 열기
           </Link>

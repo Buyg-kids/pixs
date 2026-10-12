@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Faq, GuideCta, GuideNote, GuideSection, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
+import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
 
 const TITLE = "에이블리·지그재그·무신사 대표이미지 규격 (3:4 / 4:5) & 상세페이지 가이드 | PIXS";
 const DESCRIPTION =
@@ -136,6 +136,29 @@ export default function FashionGuidePage() {
             ["무신사 브랜드 샵 배너", "1500x500px", "3:1 와이드"],
           ]}
         />
+      </GuideSection>
+
+      <GuideSection id="mistakes" title="패션 셀러가 자주 하는 이미지 실수">
+        <GuideSub title="1. 가로 사진을 세로 프레임에 억지로 늘리기">
+          <p>
+            비율이 다른 사진을 3:4 캔버스에 맞추려고 가로·세로를 늘리면 모델 체형과 상품 형태가 왜곡됩니다. 항상 비율을 유지한 채 여백을 채우거나, 세로로 다시 촬영하세요.
+          </p>
+        </GuideSub>
+        <GuideSub title="2. 컷마다 다른 비율과 크기">
+          <p>
+            대표이미지는 3:4, 추가 컷은 1:1처럼 섞으면 상세 화면에서 이미지가 들쭉날쭉해 보입니다. 상품 하나의 모든 컷은 같은 비율로 맞추세요.
+          </p>
+        </GuideSub>
+        <GuideSub title="3. 용량을 줄이지 않고 업로드">
+          <p>
+            고화질 원본을 그대로 올리면 모바일에서 로딩이 느려져 이탈이 늘어납니다. 가로 1000px 기준으로 줄이고 JPG 품질 약 85%로 압축하면 화질 차이는 거의 느끼지 못하면서 용량은 크게 줄어듭니다.
+          </p>
+        </GuideSub>
+        <GuideSub title="4. 색감이 실제와 다른 보정">
+          <p>
+            패션은 색상 불만이 반품으로 이어지기 쉽습니다. 조명과 보정으로 색이 달라졌다면 &lsquo;화면에 따라 색상이 다를 수 있음&rsquo; 안내를 상세페이지에 넣고, 가능하면 자연광에 가까운 색으로 맞추세요.
+          </p>
+        </GuideSub>
       </GuideSection>
 
       <GuideSection id="how-to" title="PIXS로 패션 플랫폼 규격 맞추는 방법">
