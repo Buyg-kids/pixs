@@ -4,15 +4,17 @@ import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDA
 
 const TITLE = "쿠팡 썸네일 순백색 배경 규격 및 대표이미지 반려 해결 가이드 | PIXS";
 const DESCRIPTION =
-  "쿠팡 윙/로켓그로스 대표이미지 순백색(RGB 255) 규정과 썸네일 반려 사유 해결법, 상품 면적 기준 및 상세페이지 가로 780px 규격 완벽 정리.";
+  "쿠팡 윙/로켓그로스 대표이미지 순백색(RGB 255) 규정과 썸네일 반려 해결법, 상품 면적 기준 및 상세페이지 780px 안내.";
+const OG_TITLE = "쿠팡 썸네일 순백색 배경 & 규격 반려 해결법 | PIXS";
+const OG_DESCRIPTION = "RGB 255 순백색 배경 가이드와 썸네일 승인 반려 사유 5가지 해결 팁.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords: ["쿠팡 썸네일 규격", "쿠팡 윙 이미지 반려", "로켓그로스 이미지 규격", "쿠팡 상세페이지 가로 크기", "쿠팡 대표이미지 흰색배경", "쿠팡 이미지 사이즈"],
   alternates: { canonical: "/guide/coupang" },
-  openGraph: { title: TITLE, description: DESCRIPTION, type: "article", url: "/guide/coupang", siteName: "PIXS", locale: "ko_KR", images: OG_IMAGES },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/opengraph-image"] },
+  openGraph: { title: OG_TITLE, description: OG_DESCRIPTION, type: "article", url: "/guide/coupang", siteName: "PIXS", locale: "ko_KR", images: OG_IMAGES },
+  twitter: { card: "summary_large_image", title: OG_TITLE, description: OG_DESCRIPTION, images: ["/opengraph-image"] },
 };
 
 const FAQ = [

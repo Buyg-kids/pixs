@@ -4,15 +4,17 @@ import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDA
 
 const TITLE = "스마트스토어 대표이미지 사이즈 1000x1000 규격 및 추가이미지 가이드 | PIXS";
 const DESCRIPTION =
-  "네이버 쇼핑 검색 노출을 위한 스마트스토어 대표이미지 권장 규격(1000x1000), 용량 최적화, 추가이미지 9장 배치 팁 및 노출 불이익 예방 가이드.";
+  "네이버 쇼핑 노출을 위한 스마트스토어 대표이미지 권장 규격(1000x1000), 용량 최적화, 추가이미지 9장 배치 팁 총정리.";
+const OG_TITLE = "스마트스토어 대표이미지 1000x1000 규격 가이드 | PIXS";
+const OG_DESCRIPTION = "네이버 쇼핑 상위 노출을 위한 썸네일 규격과 감점 사유 예방 체크리스트.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords: ["스마트스토어 대표이미지 사이즈", "스마트스토어 추가이미지", "스마트스토어 상세페이지 가로 크기", "스마트스토어 이미지 규격", "이커머스 썸네일 규격", "스마트스토어 배너 사이즈", "네이버 쇼핑 대표이미지"],
   alternates: { canonical: "/guide/smartstore" },
-  openGraph: { title: TITLE, description: DESCRIPTION, type: "article", url: "/guide/smartstore", siteName: "PIXS", locale: "ko_KR", images: OG_IMAGES },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/opengraph-image"] },
+  openGraph: { title: OG_TITLE, description: OG_DESCRIPTION, type: "article", url: "/guide/smartstore", siteName: "PIXS", locale: "ko_KR", images: OG_IMAGES },
+  twitter: { card: "summary_large_image", title: OG_TITLE, description: OG_DESCRIPTION, images: ["/opengraph-image"] },
 };
 
 const FAQ = [

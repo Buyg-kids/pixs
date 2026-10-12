@@ -5,14 +5,16 @@ import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDA
 const TITLE = "에이블리·지그재그·무신사 썸네일 비율(3:4 / 4:5) 사이즈 가이드 | PIXS";
 const DESCRIPTION =
   "패션 버티컬 플랫폼(에이블리, 지그재그, 무신사) 썸네일 권장 비율 3:4(1000x1333) 및 4:5(1000x1250) 세로형 이미지 최적화 가이드.";
+const OG_TITLE = "에이블리·지그재그·무신사 썸네일 비율 가이드 | PIXS";
+const OG_DESCRIPTION = "3:4 및 4:5 세로형 썸네일 최적화와 모바일 UI 세이프존 가이드라인.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords: ["에이블리 대표이미지 사이즈", "지그재그 이미지 규격", "무신사 대표이미지 규격", "3:4 비율 사이즈", "4:5 비율 사이즈", "패션 쇼핑몰 상세페이지 가로 크기", "W컨셉 이미지 규격"],
   alternates: { canonical: "/guide/fashion" },
-  openGraph: { title: TITLE, description: DESCRIPTION, type: "article", url: "/guide/fashion", siteName: "PIXS", locale: "ko_KR", images: OG_IMAGES },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/opengraph-image"] },
+  openGraph: { title: OG_TITLE, description: OG_DESCRIPTION, type: "article", url: "/guide/fashion", siteName: "PIXS", locale: "ko_KR", images: OG_IMAGES },
+  twitter: { card: "summary_large_image", title: OG_TITLE, description: OG_DESCRIPTION, images: ["/opengraph-image"] },
 };
 
 const FAQ = [
@@ -136,6 +138,24 @@ export default function FashionGuidePage() {
             ["무신사 브랜드 샵 배너", "1500x500px", "3:1 와이드"],
           ]}
         />
+      </GuideSection>
+
+      <GuideSection id="safe-zone" title="모바일 UI 세이프존: 가장자리는 비워 두세요">
+        <p>
+          패션 앱은 썸네일 위에 찜(하트) 아이콘, 할인율·라벨, 가격 같은 UI 요소를 겹쳐 보여 주는 경우가 많습니다. 어떤 요소가 어디에 올라오는지는 플랫폼과 화면에 따라 다르므로, 핵심 정보가 가장자리에 있으면 가려질 수 있다는 점을 염두에 두는 것이 안전합니다.
+        </p>
+        <ul className="list-disc space-y-1.5 pl-5">
+          <li>
+            <strong>얼굴·상품의 핵심 부분은 중앙부에:</strong> 프레임 가장자리와 모서리(특히 우측 상단, 하단)에는 중요한 요소를 두지 마세요.
+          </li>
+          <li>
+            <strong>이미지 안 텍스트는 피하기:</strong> 가장자리에 문구를 넣으면 UI 라벨과 겹쳐 읽기 어려워집니다.
+          </li>
+          <li>
+            <strong>실제 화면으로 확인:</strong> 등록 후 모바일 앱의 목록·상세 화면에서 어떻게 잘리고 가려지는지 한 번 확인하고, 필요하면 상품을 조금 안쪽으로 배치해 다시 만드세요.
+          </li>
+        </ul>
+        <GuideNote>세이프존의 정확한 범위는 플랫폼마다 다르며 PIXS가 공식 수치를 제공하는 것은 아닙니다. 위 내용은 일반적인 구성 팁입니다.</GuideNote>
       </GuideSection>
 
       <GuideSection id="mistakes" title="패션 셀러가 자주 하는 이미지 실수">

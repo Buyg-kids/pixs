@@ -102,4 +102,4 @@ export function Faq({ items }: { items: { q: string; a: string }[] }) {
 export const GUIDE_UPDATED = "2026년 10월";
 
 // 하위 페이지가 openGraph/twitter를 직접 지정하면 루트의 공유 이미지가 상속되지 않으므로 명시적으로 연결
-export const OG_IMAGES = [{ url: "/opengraph-image", width: 1200, height: 630, alt: "PIXS - 개인 셀러를 위한 올인원 무료 이미지 스튜디오" }];
+export const OG_IMAGES = [{ url: "/opengraph-image", width: 1200, height: 630, alt: "PIXS - 쇼핑몰 올인원 이미지 스튜디오" }];
