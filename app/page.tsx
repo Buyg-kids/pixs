@@ -1171,6 +1171,23 @@ export default function Home() {
     setLastPresetId("coupang");
   };
 
+  // 프로필·배너 샘플: 로고·와이드 배너 변환 결과를 한 번에 비교해 볼 수 있도록 대표 규격을 선택
+  const loadStoreSample = () => {
+    loadFile(new File([STORE_SAMPLE_SVG], "예시_스토어배너.svg", { type: "image/svg+xml" }), true);
+    setSelectedPresets((prev) =>
+      Array.from(new Set([...prev, "store-smartstore-logo", "store-smartstore-pc-header", "store-zigzag-cover"]))
+    );
+    setLastPresetId("store-smartstore-pc-header");
+  };
+
+  // 상세페이지 샘플: 가로 860px(스마트스토어 표준) + 2,000px 단위로 분할되는 상태로 시작
+  const loadDetailSample = () => {
+    loadFile(new File([buildDetailSampleSvg()], "예시_긴상세페이지.svg", { type: "image/svg+xml" }), true);
+    setDetailWidthId("smartstore");
+    setChunkH(2000);
+    setChunkText("2000");
+  };
+
   // 모바일에서는 샘플 적용 후 변환 결과(안내 칩)가 보이도록 부드럽게 스크롤
   useEffect(() => {
     if (sampleActive && window.innerWidth < 640) {
@@ -1511,6 +1528,7 @@ export default function Home() {
       return;
     }
     if (images.length > room) alert(`최대 ${BATCH_MAX}장까지만 추가되어 ${images.length - room}장은 제외되었습니다.`);
+    setCompSampleActive(false);
     setCompItems((prev) => [
       ...prev,
       ...images.slice(0, room).map((file) => ({ id: ++compIdSeq.current, name: file.name, file })),
@@ -1558,6 +1576,7 @@ export default function Home() {
     setLastPresetId("coupang");
     setModeNotice(null);
     setSampleActive(false);
+    setCompSampleActive(false);
     setIsDragging(false);
     // 탭 3 (상세페이지 분할)
     setDetailWidthId("smartstore");
@@ -1725,6 +1744,7 @@ export default function Home() {
 
   // 체험 샘플 주입 (탭 4·5)
   const [sampleBusy, setSampleBusy] = useState<boolean>(false);
+  const [compSampleActive, setCompSampleActive] = useState(false);
 
   const loadBatchSamples = async () => {
     setSampleBusy(true);
@@ -1748,6 +1768,8 @@ export default function Home() {
         await makeHeavyImageFile("sample_상세_원본.png", 1750, 1200, 2),
       ];
       setCompItems(files.map((file) => ({ id: ++compIdSeq.current, name: file.name, file })));
+      setCompTargetId("coupang"); // 쿠팡 권장(2MB 이하)으로 바로 압축되는 모습을 보여 줌
+      setCompSampleActive(true);
     } catch (err) {
       console.error(err);
       alert("샘플을 만들지 못했습니다.");
@@ -1755,6 +1777,13 @@ export default function Home() {
       setSampleBusy(false);
     }
   };
+
+  // 압축 샘플은 결과가 다 나온 뒤(칩이 그려진 뒤) 모바일에서 칩 위치로 스크롤
+  useEffect(() => {
+    if (compSampleActive && compItems.length > 0 && compPending === 0 && window.innerWidth < 640) {
+      sampleChipRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [compSampleActive, compItems.length, compPending]);
 
   // 워터마크·로고 일괄 삽입
   const wmOptions: WmOptions = {
@@ -2753,7 +2782,7 @@ export default function Home() {
                   setCompDragging(false);
                   addCompFiles(Array.from(e.dataTransfer.files));
                 }}
-                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
+                className={`border-2 border-dashed rounded-xl p-4 sm:p-6 text-center cursor-pointer transition ${
                   compDragging ? "border-blue-600 bg-blue-50" : "border-slate-300 hover:border-blue-500 bg-slate-50"
                 }`}
               >
@@ -2762,6 +2791,23 @@ export default function Home() {
                   10MB가 넘는 JPG·PNG를 여러 장 끌어다 놓거나 클릭하세요
                 </p>
                 <p className="text-[11px] text-slate-400">서버로 전송되지 않고 내 브라우저에서만 압축됩니다</p>
+                {compItems.length === 0 && (
+                  <div className="pt-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation(); // 드롭존의 파일 선택창이 같이 열리지 않도록
+                        loadCompSamples();
+                      }}
+                      disabled={sampleBusy}
+                      className="inline-flex max-w-full items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-200 transition hover:from-indigo-700 hover:to-blue-600 active:scale-95 disabled:opacity-60 sm:text-sm"
+                    >
+                      <span aria-hidden>⚡</span>
+                      <span>{sampleBusy ? "고용량 샘플 만드는 중..." : "고용량 사진 샘플로 1초 압축 체험하기"}</span>
+                    </button>
+                    <p className="mt-1.5 text-[10px] text-slate-400">내 사진이 없어도 압축 결과를 바로 볼 수 있어요</p>
+                  </div>
+                )}
                 <input
                   ref={compInputRef}
                   type="file"
@@ -2774,6 +2820,7 @@ export default function Home() {
                   className="hidden"
                 />
               </div>
+              {compItems.length > 0 && (
               <button
                 onClick={loadCompSamples}
                 disabled={sampleBusy}
@@ -2781,6 +2828,7 @@ export default function Home() {
               >
                 {sampleBusy ? "고용량 샘플 만드는 중..." : "💡 고용량 사진 2장으로 압축 체험하기"}
               </button>
+              )}
               <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 space-y-2.5">
                 <div className="space-y-1">
                   <span className="inline-block rounded bg-blue-100 px-1.5 py-0.5 text-[11px] font-bold text-blue-700">
@@ -3025,6 +3073,30 @@ export default function Home() {
                   })()}
                 </p>
               )}
+              {compSampleActive && compPending === 0 && compItems.some((it) => it.result) && (() => {
+                const before = compItems.reduce((acc, it) => acc + it.file.size, 0);
+                const after = compItems.reduce((acc, it) => acc + (it.result?.size ?? it.file.size), 0);
+                const pct = Math.round((1 - after / before) * 100);
+                if (pct <= 0) return null;
+                return (
+                  <div
+                    ref={sampleChipRef}
+                    className="flex items-start gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-[11px] leading-relaxed text-indigo-900"
+                  >
+                    <p className="flex-1 break-keep">
+                      💡 눈에 띄는 화질 저하 없이 원본 대비 용량이 <strong>{pct}% 절감</strong>되었습니다. ({formatBytes(before)} → {formatBytes(after)}, 쿠팡 권장 2MB 이하 기준)
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCompSampleActive(false)}
+                      aria-label="안내 닫기"
+                      className="shrink-0 text-indigo-400 hover:text-indigo-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="pt-4 border-t border-slate-100">
@@ -3283,18 +3355,26 @@ export default function Home() {
                     사진을 끌어다 놓거나 클릭하세요
                   </p>
                   <p className="text-[11px] text-slate-400">JPG, PNG, WebP 원본</p>
-                  {tab === "product" && (
+                  {(tab === "product" || tab === "store" || tab === "detail") && (
                     <div className="pt-2">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation(); // 드롭존의 파일 선택창이 같이 열리지 않도록
-                          loadSample();
+                          if (tab === "product") loadSample();
+                          else if (tab === "store") loadStoreSample();
+                          else loadDetailSample();
                         }}
                         className="inline-flex max-w-full items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-200 transition hover:from-indigo-700 hover:to-blue-600 active:scale-95 sm:text-sm"
                       >
                         <span aria-hidden>⚡</span>
-                        <span>샘플 사진으로 1초 체험해보기</span>
+                        <span>
+                          {tab === "detail"
+                            ? "긴 상세페이지 샘플로 1초 체험하기"
+                            : tab === "store"
+                              ? "샘플 이미지로 1초 체험하기"
+                              : "샘플 사진으로 1초 체험해보기"}
+                        </span>
                       </button>
                       <p className="mt-1.5 text-[10px] text-slate-400">내 사진이 없어도 바로 결과를 볼 수 있어요</p>
                     </div>
@@ -3319,29 +3399,18 @@ export default function Home() {
               </button>
             )}
 
-            {tab === "store" && (
+            {tab === "store" && previewUrl && (
               <button
-                onClick={() => {
-                  loadFile(new File([STORE_SAMPLE_SVG], "예시_스토어배너.svg", { type: "image/svg+xml" }));
-                  // 로고·와이드 배너 변환 결과를 한 번에 비교해 볼 수 있도록 대표 규격을 선택
-                  setSelectedPresets((prev) =>
-                    Array.from(new Set([...prev, "store-smartstore-logo", "store-smartstore-pc-header", "store-zigzag-cover"]))
-                  );
-                  setLastPresetId("store-smartstore-pc-header");
-                }}
+                onClick={loadStoreSample}
                 className="w-full py-2 rounded-lg border border-blue-200 bg-blue-50 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
               >
                 💡 스토어 배너 예시로 체험하기
               </button>
             )}
 
-            {tab === "detail" && (
+            {tab === "detail" && previewUrl && (
               <button
-                onClick={() => {
-                  loadFile(new File([buildDetailSampleSvg()], "예시_긴상세페이지.svg", { type: "image/svg+xml" }));
-                  setChunkH(2000); // 체험 시 분할선이 바로 보이도록 2,000px 기준으로 맞춤
-                  setChunkText("2000");
-                }}
+                onClick={loadDetailSample}
                 className="w-full py-2 rounded-lg border border-blue-200 bg-blue-50 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
               >
                 💡 긴 상세페이지 예시로 분할 체험하기
@@ -3530,16 +3599,23 @@ export default function Home() {
                       }`}
                     />
                   </div>
-                  {sampleActive && tab === "product" && previewPreset && (
+                  {sampleActive && (tab === "product" || tab === "store") && previewPreset && (
                     <div
                       ref={sampleChipRef}
                       className="flex items-start gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-[11px] leading-relaxed text-indigo-900"
                     >
-                      <p className="flex-1 break-keep">
-                        💡 원본 사진({formatRatio(loadedImg.width, loadedImg.height)})에 <strong>{previewPreset.name} 맞춤 여백</strong>이 자동으로 채워졌어요.
-                        위 원본과 비교해 보세요! ({previewPreset.width}x{previewPreset.height}px
-                        {previewPreset.strictWhiteBg ? ", 순백색 고정" : ""})
-                      </p>
+                      {tab === "store" ? (
+                        <p className="flex-1 break-keep">
+                          💡 샘플 이미지({formatRatio(loadedImg.width, loadedImg.height)})가 <strong>{previewPreset.name}</strong> 규격({previewPreset.width}x{previewPreset.height}px)에 맞춰
+                          자동 변환됐어요. 아래에서 다른 프로필·배너 규격도 선택해 보세요!
+                        </p>
+                      ) : (
+                        <p className="flex-1 break-keep">
+                          💡 원본 사진({formatRatio(loadedImg.width, loadedImg.height)})에 <strong>{previewPreset.name} 맞춤 여백</strong>이 자동으로 채워졌어요.
+                          위 원본과 비교해 보세요! ({previewPreset.width}x{previewPreset.height}px
+                          {previewPreset.strictWhiteBg ? ", 순백색 고정" : ""})
+                        </p>
+                      )}
                       <button
                         type="button"
                         onClick={() => setSampleActive(false)}
@@ -3682,6 +3758,25 @@ export default function Home() {
                   <p className="text-[11px] text-slate-400">② 높이 이하가 되도록 장수를 정한 뒤, 모든 조각을 같은 높이로 나눕니다.</p>
                 )}
               </div>
+
+              {sampleActive && loadedImg && (
+                <div
+                  ref={sampleChipRef}
+                  className="flex items-start gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-[11px] leading-relaxed text-indigo-900"
+                >
+                  <p className="flex-1 break-keep">
+                    💡 긴 상세페이지가 <strong>모바일 최적화 규격</strong>으로 분할되었습니다. (가로 {detailTargetW.toLocaleString()}px · {detailCount}장) 왼쪽 미리보기의 빨간 점선을 끌어 위치도 바꿔 보세요!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSampleActive(false)}
+                    aria-label="안내 닫기"
+                    className="shrink-0 text-indigo-400 hover:text-indigo-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-900">
                 {loadedImg ? (
