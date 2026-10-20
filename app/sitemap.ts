@@ -3,7 +3,8 @@ import { SITE_URL } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = SITE_URL;
-  const lastModified = new Date();
+  // 요청할 때마다 바뀌는 new Date() 대신 고정 날짜를 사용 (lastmod가 매번 달라지면 검색엔진이 신뢰하지 않음). 콘텐츠를 크게 수정하면 이 날짜를 갱신
+  const lastModified = new Date("2026-10-20");
 
   return [
     {
