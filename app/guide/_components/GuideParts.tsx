@@ -2,24 +2,52 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 // 가이드 글 상·하단 공통 CTA: 메인 홈(스튜디오)으로 연결
-export function GuideCta({ position }: { position: "top" | "bottom" }) {
+export function GuideCta({
+  position,
+  href = "/",
+  label = "PIXS 스튜디오에서 지금 바로 규격 맞춤 변환하기",
+}: {
+  position: "top" | "middle" | "bottom";
+  href?: string;
+  label?: string;
+}) {
+  const copy =
+    position === "top"
+      ? "규격을 알았다면 바로 변환해 보세요. 설치 없이 브라우저에서 무료로 처리됩니다."
+      : position === "middle"
+        ? "읽는 것보다 직접 해보는 게 빠릅니다. 사진을 올리면 규격에 맞게 바로 변환됩니다."
+        : "이미지를 서버에 올리지 않고, 내 브라우저에서 규격에 맞춰 한 번에 변환합니다.";
   return (
     <div
       className={`rounded-2xl border border-blue-200 bg-blue-50 px-5 py-5 text-center ${position === "top" ? "mt-6" : "mt-10"}`}
     >
-      <p className="text-sm font-semibold text-slate-700 break-keep">
-        {position === "top"
-          ? "규격을 알았다면 바로 변환해 보세요. 설치 없이 브라우저에서 무료로 처리됩니다."
-          : "이미지를 서버에 올리지 않고, 내 브라우저에서 규격에 맞춰 한 번에 변환합니다."}
-      </p>
+      <p className="text-sm font-semibold text-slate-700 break-keep">{copy}</p>
       <Link
-        href="/"
-        className="mt-3 inline-block rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-700"
+        href={href}
+        className="mt-3 inline-block max-w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-700 break-keep"
       >
-        PIXS 스튜디오에서 지금 바로 규격 맞춤 변환하기
+        {label}
       </Link>
     </div>
   );
+}
+
+// 구조화 데이터(JSON-LD) 삽입: < 문자를 이스케이프해 </script> 주입을 막음
+export function JsonLd({ data }: { data: object }) {
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />;
+}
+
+// 화면에 보이는 FAQ 배열과 동일한 내용으로 FAQPage 스키마 생성 (화면 내용과 구조화 데이터가 달라지지 않도록 같은 배열 사용)
+export function faqJsonLd(items: { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.q,
+      acceptedAnswer: { "@type": "Answer", text: it.a },
+    })),
+  };
 }
 
 export function GuideSection({ id, title, children }: { id?: string; title: string; children: ReactNode }) {

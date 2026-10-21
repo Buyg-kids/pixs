@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import HomeSeoSection from "./_components/HomeSeoSection";
+import { JsonLd } from "./guide/_components/GuideParts";
+import { SITE_URL } from "@/lib/site";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -403,6 +405,19 @@ const PRESETS: Preset[] = [
   ...PRODUCT_PRESETS.map((p) => ({ ...p, kind: "product" as const })),
   ...STORE_PRESETS.map((p) => ({ ...p, kind: "store" as const })),
 ];
+
+// 검색엔진용 구조화 데이터: 무료 웹 도구(WebApplication)
+const WEB_APP_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "PIXS",
+  url: SITE_URL,
+  applicationCategory: "DesignApplication",
+  operatingSystem: "All",
+  inLanguage: "ko",
+  description: "이커머스 쇼핑몰 대표이미지 1000x1000 규격 변환 및 상세페이지 분할 무료 웹 도구",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+};
 
 // 체험용 내장 샘플: 베이지 배경의 세로형 의류 사진 느낌 (가장자리 색 감지·블러 효과가 잘 보이도록 흰색이 아닌 배경)
 // 배경은 그라데이션 없이 단일 솔리드(#EAE5D9)로 고정하고, 모든 요소를 가장자리에서 충분히 띄워 모서리 색 감지 값이 배경과 100% 같도록 함
@@ -1163,6 +1178,15 @@ export default function Home() {
     };
     img.src = url;
   };
+
+  // 가이드 페이지 CTA 딥링크(/?preset=smartstore 등): 해당 마켓 프리셋만 선택된 상태로 시작
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("preset");
+    if (id && PRESETS.some((p) => p.id === id && p.kind === "product")) {
+      setSelectedPresets([id]);
+      setLastPresetId(id);
+    }
+  }, []);
 
   // 샘플 사진으로 1초 체험: 세로 3:4 샘플을 올리고 쿠팡(1:1 순백색) 규격을 바로 적용해 변환 결과를 보여 줌
   const loadSample = () => {
@@ -2115,6 +2139,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 py-6 px-3 sm:py-12 sm:px-6 lg:px-8">
+      <JsonLd data={WEB_APP_LD} />
       <div className="max-w-5xl mx-auto space-y-6 sm:space-y-10">
 
         {/* 헤더 */}

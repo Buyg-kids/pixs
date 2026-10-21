@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
+import { Faq, faqJsonLd, GuideCta, JsonLd, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
 
-const TITLE = "쿠팡 썸네일 순백색 배경 규격 및 대표이미지 반려 해결 가이드 | PIXS";
+const TITLE = "쿠팡 썸네일 규격과 순백색 배경 반려 해결 가이드 (RGB 255) | PIXS";
 const DESCRIPTION =
-  "쿠팡 윙/로켓그로스 대표이미지 순백색(RGB 255) 규정과 썸네일 반려 해결법, 상품 면적 기준 및 상세페이지 780px 안내.";
+  "쿠팡 윙 대표이미지 반려의 주된 원인인 순백색 배경(#FFFFFF)과 상품 면적 85% 규칙 해결법. 여백 자동 채우기로 즉시 등록하는 방법 안내.";
 const OG_TITLE = "쿠팡 썸네일 순백색 배경 & 규격 반려 해결법 | PIXS";
 const OG_DESCRIPTION = "RGB 255 순백색 배경 가이드와 썸네일 승인 반려 사유 5가지 해결 팁.";
 
@@ -19,6 +19,10 @@ export const metadata: Metadata = {
 
 const FAQ = [
   {
+    q: "쿠팡 윙에서 대표이미지 등록 시 자주 반려되는 이유는?",
+    a: "배경이 완전한 흰색(RGB 255, 255, 255 / #FFFFFF)이 아니거나, 상품 크기가 전체 면적의 85% 미만으로 너무 작을 때 주로 반려됩니다. 텍스트·로고·워터마크가 들어간 경우도 반려 사유가 될 수 있습니다.",
+  },
+  {
     q: "쿠팡 대표이미지 배경은 꼭 흰색이어야 하나요?",
     a: "쿠팡은 카탈로그 매칭을 위해 RGB 255 순수 흰색 배경을 필수로 요구하는 마켓으로 정리했습니다. 블러나 임의 색상 배경은 반려 사유가 될 수 있어, PIXS는 쿠팡 규격 출력 시 선택한 여백 모드와 관계없이 순백색으로 고정합니다.",
   },
@@ -27,8 +31,8 @@ const FAQ = [
     a: "눈에는 흰색이어도 (254, 254, 254)나 (250, 250, 250)처럼 순수 흰색이 아닌 값이면 검수에서 걸릴 수 있습니다. JPG 압축과 그림자도 가장자리에 회색 픽셀을 만들 수 있으니, 배경을 #FFFFFF로 채우고 높은 품질로 저장하세요.",
   },
   {
-    q: "쿠팡 상세페이지 가로 크기는 몇 픽셀인가요?",
-    a: "가로 780px을 기준으로 권장합니다. 가로폭만 780px로 맞추면 세로는 자유롭게 구성할 수 있고, 길다면 나눠서 올리세요.",
+    q: "상세페이지 가로 사이즈는 몇 px이 적당한가요?",
+    a: "쿠팡 상세페이지 권장 가로 폭은 780px이며, 파일당 용량은 10MB 이하, 세로 길이는 3,000~5,000px 이내로 분할하여 등록하는 것이 로딩 속도에 좋습니다. (PIXS 정리 기준)",
   },
   {
     q: "쿠팡에 WebP 이미지를 올려도 되나요?",
@@ -43,6 +47,7 @@ const FAQ = [
 export default function CoupangGuidePage() {
   return (
     <article>
+      <JsonLd data={faqJsonLd(FAQ)} />
       <nav aria-label="현재 위치" className="text-xs text-slate-500">
         <Link href="/" className="hover:text-blue-600">홈</Link> <span aria-hidden>/</span>{" "}
         <Link href="/guide" className="hover:text-blue-600">규격 가이드</Link> <span aria-hidden>/</span> 쿠팡
@@ -55,7 +60,7 @@ export default function CoupangGuidePage() {
         실무 순서로 정리했습니다. (PIXS 정리 기준: {GUIDE_UPDATED})
       </p>
 
-      <GuideCta position="top" />
+      <GuideCta position="top" href="/?preset=coupang" label="👉 쿠팡 순백색 배경 썸네일 자동 생성하기" />
 
       <GuideSection id="summary" title="한눈에 보는 쿠팡 이미지 규격">
         <SpecTable
@@ -107,6 +112,8 @@ export default function CoupangGuidePage() {
         <GuideNote>PIXS에서는 쿠팡을 선택하면 여백 모드(블러·자동 감지·직접 선택)와 상관없이 항상 순백색으로 변환되어 반려를 줄여 줍니다.</GuideNote>
       </GuideSection>
 
+      <GuideCta position="middle" href="/?preset=coupang" label="👉 쿠팡 순백색 배경 썸네일 자동 생성하기" />
+
       <GuideSection id="rejection" title="쿠팡 윙 이미지 반려 사유별 해결법">
         <p>
           이미지가 반려되면 상품 등록이 지연되고 판매 시작도 늦어집니다. 아래는 자주 마주치는 유형과 해결 방법입니다. 실제 반려 사유 문구는 윙에서 안내하는 내용을 우선 확인하세요.
@@ -154,7 +161,7 @@ export default function CoupangGuidePage() {
             <strong>리사이즈:</strong> 가로폭만 780px로 비율 유지 리사이즈하면 세로 길이는 자동으로 따라옵니다.
           </li>
           <li>
-            <strong>분할:</strong> 세로가 너무 길면 2,000px 안팎으로 나눠 올리고, 글자가 잘리는 구간은 분할선을 옮겨 피하세요.
+            <strong>분할:</strong> 세로가 너무 길면 3,000~5,000px 이내로 나눠 올리고(모바일 로딩에 유리), 글자가 잘리는 구간은 분할선을 옮겨 피하세요.
           </li>
           <li>
             <strong>용량 절감:</strong> 긴 상세페이지는 JPG 유지 압축(품질 약 85%)으로 장당 용량을 낮추는 것이 안정적입니다.
@@ -195,7 +202,7 @@ export default function CoupangGuidePage() {
         위 수치는 PIXS가 정리한 권장 기준이며 마켓 정책에 따라 바뀔 수 있습니다. 등록 전 쿠팡 Wing의 최신 안내를 함께 확인하세요.
       </GuideNote>
 
-      <GuideCta position="bottom" />
+      <GuideCta position="bottom" href="/?preset=coupang" label="👉 쿠팡 순백색 배경 썸네일 자동 생성하기" />
 
       <p className="mt-8 text-sm text-slate-600">
         다른 마켓이 궁금하다면{" "}

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Faq, GuideCta, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
+import { Faq, faqJsonLd, GuideCta, JsonLd, GuideNote, GuideSection, GuideSub, SpecTable, GUIDE_UPDATED, OG_IMAGES } from "../_components/GuideParts";
 
-const TITLE = "스마트스토어 대표이미지 사이즈 1000x1000 규격 및 추가이미지 가이드 | PIXS";
+const TITLE = "스마트스토어 대표이미지 1000x1000 규격 및 사이즈 맞추기 가이드 | PIXS";
 const DESCRIPTION =
-  "네이버 쇼핑 노출을 위한 스마트스토어 대표이미지 권장 규격(1000x1000), 용량 최적화, 추가이미지 9장 배치 팁 총정리.";
+  "스마트스토어 대표이미지 권장 규격 1000x1000(1:1 비율) 설정법과 860px 상세페이지의 차이점, 용량 20MB 이하 최적화 팁을 확인하세요.";
 const OG_TITLE = "스마트스토어 대표이미지 1000x1000 규격 가이드 | PIXS";
 const OG_DESCRIPTION = "네이버 쇼핑 상위 노출을 위한 썸네일 규격과 감점 사유 예방 체크리스트.";
 
@@ -19,8 +19,16 @@ export const metadata: Metadata = {
 
 const FAQ = [
   {
-    q: "스마트스토어 대표이미지 사이즈는 몇 픽셀로 만들면 되나요?",
-    a: "1:1 정방형 1000x1000px을 표준으로 권장합니다. 사진 비율이 다르면 억지로 자르지 말고, 비율을 유지한 채 남는 여백을 배경색으로 채워 정방형으로 맞추세요. 상품이 잘리지 않고 목록에서도 일정한 크기로 보입니다.",
+    q: "스마트스토어 대표이미지는 꼭 1000x1000이어야 하나요?",
+    a: "네이버는 이보다 작은 이미지(최소 640x640px 이상으로 알려져 있습니다)도 등록할 수 있지만, 쇼핑 검색 노출과 고해상도 모바일 화면에서의 선명도를 위해 1000x1000px(1:1 비율)을 권장합니다. 정확한 최소 기준은 스마트스토어센터의 최신 안내를 확인하세요.",
+  },
+  {
+    q: "860px 규격은 대표이미지인가요?",
+    a: "아닙니다. 860px은 스마트에디터 ONE의 상세페이지 본문 가로 권장 폭이며, 대표이미지(썸네일)는 1000x1000 정사각형으로 만드는 것이 좋습니다. 두 규격은 용도가 다르니 따로 맞춰야 합니다.",
+  },
+  {
+    q: "이미지가 1:1 정사각형이 아닐 때는 어떻게 하나요?",
+    a: "강제로 늘리면 상품이 왜곡되므로, 상하·좌우에 여백을 채워 1000x1000 정방형으로 만들거나 주요 피사체 중심으로 잘라야 합니다. PIXS에서는 원본 비율을 유지한 채 자동으로 여백을 채워 정방형으로 만들 수 있습니다.",
   },
   {
     q: "대표이미지 용량은 얼마나 되어야 하나요?",
@@ -49,6 +57,7 @@ const CHECKLIST = [
 export default function SmartstoreGuidePage() {
   return (
     <article>
+      <JsonLd data={faqJsonLd(FAQ)} />
       <nav aria-label="현재 위치" className="text-xs text-slate-500">
         <Link href="/" className="hover:text-blue-600">홈</Link> <span aria-hidden>/</span>{" "}
         <Link href="/guide" className="hover:text-blue-600">규격 가이드</Link> <span aria-hidden>/</span> 스마트스토어
@@ -61,7 +70,7 @@ export default function SmartstoreGuidePage() {
         모바일 가독성, 상세페이지 가로 크기까지 실무 순서로 정리했습니다. (PIXS 정리 기준: {GUIDE_UPDATED})
       </p>
 
-      <GuideCta position="top" />
+      <GuideCta position="top" href="/?preset=smartstore" label="👉 스마트스토어 1000x1000 썸네일 1초 만에 맞추기" />
 
       <GuideSection id="summary" title="한눈에 보는 스마트스토어 이미지 규격">
         <SpecTable
@@ -122,6 +131,8 @@ export default function SmartstoreGuidePage() {
         </ul>
         <GuideNote>워터마크가 꼭 필요하면 우측 하단에 투명도 30~40% 정도로 작게 넣어 상품을 가리지 않게 하세요.</GuideNote>
       </GuideSection>
+
+      <GuideCta position="middle" href="/?preset=smartstore" label="👉 스마트스토어 1000x1000 썸네일 1초 만에 맞추기" />
 
       <GuideSection id="penalty" title="노출 누락·불이익으로 이어지는 대표이미지 유형">
         <p>
@@ -248,7 +259,7 @@ export default function SmartstoreGuidePage() {
         위 수치는 PIXS가 정리한 권장 기준이며 마켓 정책에 따라 바뀔 수 있습니다. 등록 전 스마트스토어센터의 최신 안내를 함께 확인하세요.
       </GuideNote>
 
-      <GuideCta position="bottom" />
+      <GuideCta position="bottom" href="/?preset=smartstore" label="👉 스마트스토어 1000x1000 썸네일 1초 만에 맞추기" />
 
       <p className="mt-8 text-sm text-slate-600">
         다른 마켓이 궁금하다면{" "}
