@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site';
+import { GUIDES } from '@/data/guides';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = SITE_URL;
@@ -38,6 +39,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    // 셀러 실전 가이드 (data/guides 에 등록된 글이 자동으로 포함됨)
+    ...GUIDES.map((g) => ({
+      url: `${baseUrl}/guide/${g.slug}`,
+      lastModified: new Date(g.published),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
     // 서비스 소개 · 법적 고지 (애드센스 심사 필수 페이지)
     {
       url: `${baseUrl}/about`,

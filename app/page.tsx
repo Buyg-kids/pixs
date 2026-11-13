@@ -1179,9 +1179,13 @@ export default function Home() {
     img.src = url;
   };
 
-  // 가이드 페이지 CTA 딥링크(/?preset=smartstore 등): 해당 마켓 프리셋만 선택된 상태로 시작
+  // 가이드 페이지 CTA 딥링크: /?tab=detail 은 해당 작업 탭으로, /?preset=smartstore 는 해당 마켓 프리셋만 선택된 상태로 시작
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("preset");
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    const found = TABS.find((t) => t.id === tabParam);
+    if (found) setTab(found.id);
+    const id = params.get("preset");
     if (id && PRESETS.some((p) => p.id === id && p.kind === "product")) {
       setSelectedPresets([id]);
       setLastPresetId(id);
