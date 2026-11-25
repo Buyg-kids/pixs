@@ -5,7 +5,7 @@ import { GuideCta, GuideNote, GuideSection, GUIDE_UPDATED, OG_IMAGES } from "./_
 
 const TITLE = "셀러 이미지 가이드 - 마켓별 규격·상세페이지 편집·용량 최적화 | PIXS";
 const DESCRIPTION =
-  "스마트스토어·쿠팡·패션 플랫폼 대표이미지 규격부터 상세페이지 분할, 용량·화질 최적화까지 이커머스 셀러가 바로 쓰는 실무 가이드 15편을 카테고리별로 모았습니다.";
+  "스마트스토어·쿠팡·패션 플랫폼 대표이미지 규격부터 상세페이지 분할, 용량·화질 최적화까지 이커머스 셀러가 바로 쓰는 실무 가이드를 카테고리별로 모았습니다.";
 
 export const metadata: Metadata = {
   title: TITLE,

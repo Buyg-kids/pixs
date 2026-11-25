@@ -46,6 +46,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/check/detail`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
     // 셀러 실전 가이드 (data/guides 에 등록된 글이 자동으로 포함됨)
     ...GUIDES.map((g) => ({
       url: `${baseUrl}/guide/${g.slug}`,

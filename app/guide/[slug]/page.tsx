@@ -109,6 +109,21 @@ function RenderBlock({ block }: { block: Block }) {
       return <SpecTable caption={block.caption} head={block.head} rows={block.rows} />;
     case "note":
       return <GuideNote>{block.text}</GuideNote>;
+    case "figure":
+      return (
+        <figure className="mx-auto max-w-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={block.src}
+            alt={block.alt}
+            width={block.width}
+            height={block.height}
+            loading="lazy"
+            className="h-auto w-full rounded-xl border border-slate-200 bg-slate-100"
+          />
+          <figcaption className="mt-1.5 text-center text-xs leading-relaxed text-slate-500 break-keep">{block.caption}</figcaption>
+        </figure>
+      );
   }
 }
 

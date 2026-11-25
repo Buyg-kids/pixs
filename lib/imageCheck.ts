@@ -260,26 +260,37 @@ export function evaluate(m: Measure, f: FileInfo, rule: MarketRule): CheckItem[]
     detail: pureOk
       ? "네 변의 모든 픽셀이 정확히 RGB(255, 255, 255)입니다."
       : rule.needWhite
-        ? m.edgeNearWhite > 0
-          ? `눈에는 흰색이지만 (254,254,254)처럼 순백이 아닌 픽셀이 ${m.edgeNearWhite.toLocaleString()}개 있습니다. 쿠팡 반려의 대표 원인입니다.`
-          : "가장자리에 흰색이 아닌 픽셀이 있습니다."
+        ? m.edgeNearWhite === 0
+          ? `가장자리 ${m.edgeNotPure.toLocaleString()}개 픽셀이 흰색이 아닙니다. 배경이 흰색이 아닌 사진일 가능성이 큽니다.`
+          : m.edgeNearWhite >= m.edgeNotPure * 0.5
+            ? `눈에는 흰색이지만 (254,254,254)처럼 순백이 아닌 픽셀이 ${m.edgeNearWhite.toLocaleString()}개 있습니다. 쿠팡 반려의 대표 원인입니다.`
+            : `가장자리 ${m.edgeNotPure.toLocaleString()}개가 순백이 아닙니다. 대부분은 배경이 흰색이 아닌 경우이고, ${m.edgeNearWhite.toLocaleString()}개는 (254,254,254)처럼 흰색에 가까운 값입니다.`
         : "이 마켓은 흰색 배경이 필수가 아닙니다.",
     fix: !pureOk && rule.needWhite ? "배경을 #FFFFFF로 다시 채우고 JPG 품질 85% 이상으로 저장하세요." : undefined,
   });
 
-  // 7. 상품 면적 (쿠팡 등 fillMin 기준이 있는 마켓)
-  if (rule.fillMin !== null) {
-    const area = m.bbox ? (m.bbox.w * m.bbox.h) / (m.width * m.height) : 0;
-    const pct = Math.round(area * 100);
+  // 7. 상품 채움 비율 (쿠팡 등 fillMin 기준이 있는 마켓)
+  // 상품의 긴 변이 프레임을 얼마나 채우는지로 계산한다. (넓적한 상품은 사각형 면적으로는 85%를 만들 수 없어서 면적 기준은 사용하지 않음)
+  if (rule.fillMin !== null && m.edgeNotPure - m.edgeNearWhite > m.edgeTotal * 0.02) {
     items.push({
       key: "fill",
-      title: `상품 면적 (권장 ${rule.fillMin}%)`,
+      title: `상품 채움 (권장 ${rule.fillMin}%)`,
+      value: "측정 불가",
+      status: "warn",
+      detail: "배경이 흰색이 아니라 상품 영역을 배경과 구분할 수 없습니다. 배경을 흰색으로 만든 뒤 다시 검사하세요.",
+    });
+  } else if (rule.fillMin !== null) {
+    const fill = m.bbox ? Math.max(m.bbox.w / m.width, m.bbox.h / m.height) : 0;
+    const pct = Math.round(fill * 100);
+    items.push({
+      key: "fill",
+      title: `상품 채움 (권장 ${rule.fillMin}%)`,
       value: m.bbox ? `${pct}%` : "상품 없음",
       status: pct >= rule.fillMin ? "pass" : "warn",
       detail:
         pct >= rule.fillMin
-          ? "상품이 프레임을 충분히 채웁니다."
-          : "상품이 프레임에서 차지하는 비율이 권장보다 낮아 목록에서 작게 보일 수 있습니다. (흰색이 아닌 영역의 바운딩 박스 기준 근사값)",
+          ? "상품의 긴 변이 프레임을 충분히 채웁니다."
+          : "상품이 프레임에서 차지하는 비율이 권장보다 낮아 목록에서 작게 보일 수 있습니다. (흰색이 아닌 영역을 감싸는 사각형에서 긴 변 기준으로 계산한 근사값)",
       fix: pct >= rule.fillMin ? undefined : "상품 주변 여백을 줄여 다시 크롭하세요.",
     });
   }

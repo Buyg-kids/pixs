@@ -133,6 +133,6 @@ export const guide: Guide = {
     },
   ],
   cta: { label: "👉 순백색 배경 JPG 1초 만에 만들기", href: "/?preset=coupang" },
-  related: ["coupang-rocket-growth-image-rules", "white-padding-vs-crop-thumbnail", "product-photo-dpi-and-pixel-guide"],
+  related: ["coupang", "white-padding-vs-crop-thumbnail", "product-photo-dpi-and-pixel-guide"],
   published: "2026-11-13",
 };

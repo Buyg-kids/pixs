@@ -13,7 +13,8 @@ export type Block =
   | { t: "h3"; text: string }
   | { t: "ul" | "ol" | "check"; items: string[] }
   | { t: "table"; caption: string; head: string[]; rows: string[][] }
-  | { t: "note"; text: string };
+  | { t: "note"; text: string }
+  | { t: "figure"; src: string; alt: string; caption: string; width: number; height: number };
 
 export interface GuideSectionData {
   h2: string;

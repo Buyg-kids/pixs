@@ -167,6 +167,6 @@ export const guide: Guide = {
     },
   ],
   cta: { label: "👉 상품 사진 용량 1초 만에 압축해 보기", href: "/?tab=compress" },
-  related: ["product-photo-dpi-and-pixel-guide", "mobile-commerce-image-optimization", "ably-zigzag-thumbnail-guide"],
+  related: ["product-photo-dpi-and-pixel-guide", "mobile-commerce-image-optimization", "fashion"],
   published: "2026-11-13",
 };

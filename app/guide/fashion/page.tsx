@@ -140,6 +140,36 @@ export default function FashionGuidePage() {
         />
       </GuideSection>
 
+      <GuideSection id="lookbook" title="룩북 화질이 깨지는 4가지 원인과 저장 원칙">
+        <GuideSub title="1. 작은 원본을 키워서 사용">
+          <p>600x800 이미지를 1000x1333으로 키우면 픽셀이 늘어나는 것이 아니라 번질 뿐입니다. 원본은 항상 목표 크기보다 크게 준비하고 줄이는 방향으로만 리사이즈하세요.</p>
+        </GuideSub>
+        <GuideSub title="2. 여러 번 저장하며 반복 압축">
+          <p>JPG는 저장할 때마다 손실이 쌓입니다. 편집 도중에는 원본이나 PNG로 보관하고 최종 출력에서 JPG로 딱 한 번만 저장하세요. 메신저로 받은 사진은 이미 압축되어 있으니 원본 파일을 따로 받는 것이 좋습니다.</p>
+        </GuideSub>
+        <GuideSub title="3. 과도한 압축 또는 불필요하게 큰 PNG">
+          <p>품질을 60% 아래로 낮추면 옷감 질감과 피부 톤이 뭉개지고, 반대로 사진을 PNG로 저장하면 수 MB가 되어 업로드 실패의 원인이 됩니다. 사진은 JPG 85~90%가 용량과 화질의 균형점입니다.</p>
+        </GuideSub>
+        <GuideSub title="4. 색 공간이 달라 색이 변함">
+          <p>Adobe RGB나 CMYK로 저장된 사진은 웹에서 칙칙하거나 채도가 다르게 보일 수 있습니다. 웹용 출력은 sRGB로 통일하세요.</p>
+        </GuideSub>
+        <GuideSub title="가로 사진을 3:4로 만드는 순서">
+          <ol className="list-decimal space-y-1.5 pl-5">
+            <li>원본의 짧은 변이 목표보다 작지 않은지 확인합니다.</li>
+            <li>3:4 캔버스(예: 1000x1333px)를 만들고 원본을 비율 유지로 가운데 배치합니다.</li>
+            <li>남는 여백은 원본 가장자리 색, 흰색, 또는 블러 확대 배경으로 채웁니다.</li>
+            <li>JPG 85~90%로 한 번만 저장하고 2MB를 넘으면 품질을 5%씩 낮춰 확인합니다.</li>
+          </ol>
+          <p>
+            전신이 모두 보여야 하는 의류는 여백 채우기가, 디테일이 핵심인 액세서리는 크롭이 어울립니다. 판단 기준은{" "}
+            <Link href="/guide/white-padding-vs-crop-thumbnail" className="font-semibold text-blue-600 hover:underline">
+              여백 채우기 vs 크롭 가이드
+            </Link>
+            에서 자세히 다룹니다.
+          </p>
+        </GuideSub>
+      </GuideSection>
+
       <GuideSection id="safe-zone" title="모바일 UI 세이프존: 가장자리는 비워 두세요">
         <p>
           패션 앱은 썸네일 위에 찜(하트) 아이콘, 할인율·라벨, 가격 같은 UI 요소를 겹쳐 보여 주는 경우가 많습니다. 어떤 요소가 어디에 올라오는지는 플랫폼과 화면에 따라 다르므로, 핵심 정보가 가장자리에 있으면 가려질 수 있다는 점을 염두에 두는 것이 안전합니다.

@@ -6,7 +6,7 @@ import CheckTool from "./CheckTool";
 
 const TITLE = "쿠팡·스마트스토어 대표이미지 규격 검수기 (순백색 배경·비율·용량 무료 검사) | PIXS";
 const DESCRIPTION =
-  "대표이미지를 올리기 전에 쿠팡 순백색 배경(RGB 255), 상품 면적, 1:1·3:4 비율, 해상도, 용량을 무료로 검사하세요. 서버에 업로드하지 않고 브라우저에서만 검사하며 수정 방법까지 알려 줍니다.";
+  "대표이미지를 올리기 전에 쿠팡 순백색 배경(RGB 255), 상품 채움 비율, 1:1·3:4 비율, 해상도, 용량을 무료로 검사하세요. 서버에 업로드하지 않고 브라우저에서만 검사하며 수정 방법까지 알려 줍니다.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -31,8 +31,8 @@ const FAQ = [
     a: "아닙니다. 검수기는 자동으로 측정할 수 있는 규격(해상도, 비율, 용량, 형식, 배경, 상품 면적)만 확인합니다. 텍스트·로고·워터마크 등 내용 검수는 마켓이 별도로 하며, 규격 수치도 PIXS 정리 기준이라 마켓 정책에 따라 달라질 수 있습니다.",
   },
   {
-    q: "상품 면적 비율은 어떻게 계산하나요?",
-    a: "흰색에 가까운 배경이 아닌 픽셀을 모두 감싸는 사각형(바운딩 박스)의 면적을 전체 이미지 면적으로 나눈 근사값입니다. 그림자나 길쭉한 상품은 실제 판단과 다를 수 있어 '주의'로만 표시합니다.",
+    q: "상품 채움 비율은 어떻게 계산하나요?",
+    a: "흰색에 가까운 배경이 아닌 픽셀을 모두 감싸는 사각형(바운딩 박스)을 구한 뒤, 그 사각형의 긴 변이 이미지 가로 또는 세로를 얼마나 채우는지로 계산한 근사값입니다. 그림자가 넓거나 배경이 복잡한 사진은 실제 판단과 다를 수 있어 '주의'로만 표시합니다.",
   },
 ];
 
@@ -54,9 +54,18 @@ export default function CheckPage() {
       <JsonLd data={LD} />
       <JsonLd data={faqJsonLd(FAQ)} />
 
+      <nav aria-label="검수기 종류" className="mb-5 flex gap-2 text-sm font-semibold">
+        <span className="rounded-lg border border-blue-600 bg-blue-50 px-3 py-1.5 text-blue-800" aria-current="page">
+          대표이미지 검수기
+        </span>
+        <Link href="/check/detail" className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 hover:border-blue-300">
+          상세페이지 검사기
+        </Link>
+      </nav>
+
       <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl break-keep">대표이미지 규격 검수기</h1>
       <p className="mt-3 text-sm leading-relaxed text-slate-600 break-keep">
-        마켓에 올리기 전에 대표이미지가 규격에 맞는지 미리 확인하세요. 마켓을 고르고 이미지를 올리면 해상도, 비율, 용량, 형식, 투명 배경, 순백색 배경, 상품 면적을 한 번에 검사해 PASS·주의·FAIL로 알려 주고, 수정 방법까지
+        마켓에 올리기 전에 대표이미지가 규격에 맞는지 미리 확인하세요. 마켓을 고르고 이미지를 올리면 해상도, 비율, 용량, 형식, 투명 배경, 순백색 배경, 상품 채움 비율을 한 번에 검사해 PASS·주의·FAIL로 알려 주고, 수정 방법까지
         안내합니다. 이미지는 서버로 전송되지 않습니다.
       </p>
 
@@ -79,11 +88,11 @@ export default function CheckPage() {
             <strong>투명 배경:</strong> JPG로 바꿀 때 검은 배경이 되는 문제를 미리 알려 줍니다.
           </li>
           <li>
-            <strong>상품 면적:</strong> 쿠팡 85% 기준에 대한 근사 비율과 상품 영역을 이미지 위에 표시합니다.
+            <strong>상품 채움:</strong> 쿠팡 85% 기준에 대한 근사 비율(상품 긴 변 기준)과 상품 영역을 이미지 위에 표시합니다.
           </li>
         </ul>
         <p>
-          규격의 이유와 해결 방법이 궁금하다면 <Link href="/guide/coupang-rocket-growth-image-rules" className="font-semibold text-blue-600 hover:underline">쿠팡 대표이미지 85% 기준과 순백색 반려 해결법</Link>,{" "}
+          규격의 이유와 해결 방법이 궁금하다면 <Link href="/guide/coupang" className="font-semibold text-blue-600 hover:underline">쿠팡 대표이미지 규격과 순백색 반려 해결 가이드</Link>,{" "}
           <Link href="/guide/transparent-png-to-white-jpg" className="font-semibold text-blue-600 hover:underline">투명 PNG를 순백색 JPG로 바꿀 때 주의점</Link>,{" "}
           <Link href="/guide" className="font-semibold text-blue-600 hover:underline">셀러 이미지 가이드 전체</Link>를 참고하세요.
         </p>

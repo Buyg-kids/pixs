@@ -160,6 +160,6 @@ export const guide: Guide = {
     },
   ],
   cta: { label: "👉 여백 채우기 썸네일 1초 만에 만들어 보기", href: "/?preset=smartstore" },
-  related: ["transparent-png-to-white-jpg", "smartstore-search-seo-image-tips", "bulk-image-resizing-workflow"],
+  related: ["transparent-png-to-white-jpg", "smartstore", "bulk-image-resizing-workflow"],
   published: "2026-11-13",
 };

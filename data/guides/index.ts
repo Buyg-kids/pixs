@@ -1,9 +1,6 @@
 import type { Guide, GuideCategory } from "./types";
-import { guide as ablyZigzag } from "./ably-zigzag-thumbnail-guide";
 import { guide as detailSplit } from "./detail-page-split-vs-single";
 import { guide as compression } from "./ecommerce-image-compression-guide";
-import { guide as coupangRocket } from "./coupang-rocket-growth-image-rules";
-import { guide as smartstoreSeo } from "./smartstore-search-seo-image-tips";
 import { guide as taobao } from "./taobao-1688-detail-page-editing";
 import { guide as whitePadding } from "./white-padding-vs-crop-thumbnail";
 import { guide as mobile } from "./mobile-commerce-image-optimization";
@@ -11,17 +8,16 @@ import { guide as esm } from "./esm-plus-gmarket-auction-image-spec";
 import { guide as dpi } from "./product-photo-dpi-and-pixel-guide";
 import { guide as bulk } from "./bulk-image-resizing-workflow";
 import { guide as transparent } from "./transparent-png-to-white-jpg";
+import { guide as caseStudy } from "./one-photo-three-markets-case";
 
 export { CATEGORY_LABELS } from "./types";
 export type { Guide, GuideCategory, Block, GuideSectionData } from "./types";
 
-/** /guide/[slug] 로 렌더링되는 심층 가이드 12편 (새 글은 파일을 추가하고 여기에 등록하면 사이트맵·허브에 자동 반영) */
+/** /guide/[slug] 로 렌더링되는 심층 가이드 (새 글은 파일을 추가하고 여기에 등록하면 사이트맵·허브에 자동 반영) */
 export const GUIDES: Guide[] = [
-  ablyZigzag,
+  caseStudy,
   detailSplit,
   compression,
-  coupangRocket,
-  smartstoreSeo,
   taobao,
   whitePadding,
   mobile,

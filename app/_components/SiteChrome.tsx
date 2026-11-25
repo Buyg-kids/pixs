@@ -44,6 +44,9 @@ export function SiteFooter({ showMarketNote = false }: { showMarketNote?: boolea
           <Link href="/check" className="hover:text-blue-600 hover:underline">
             대표이미지 검수기
           </Link>
+          <Link href="/check/detail" className="hover:text-blue-600 hover:underline">
+            상세페이지 검사기
+          </Link>
           <Link href="/about" className="hover:text-blue-600 hover:underline">
             서비스 소개
           </Link>
