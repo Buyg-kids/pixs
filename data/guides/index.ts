@@ -9,6 +9,10 @@ import { guide as dpi } from "./product-photo-dpi-and-pixel-guide";
 import { guide as bulk } from "./bulk-image-resizing-workflow";
 import { guide as transparent } from "./transparent-png-to-white-jpg";
 import { guide as caseStudy } from "./one-photo-three-markets-case";
+import { guide as rejection } from "./main-image-rejection-patterns";
+import { guide as workflow } from "./new-product-image-workflow";
+import { guide as uploadFix } from "./detail-page-upload-troubleshooting";
+import { guide as lessons } from "./seller-image-editing-lessons";
 
 export { CATEGORY_LABELS } from "./types";
 export type { Guide, GuideCategory, Block, GuideSectionData } from "./types";
@@ -16,6 +20,10 @@ export type { Guide, GuideCategory, Block, GuideSectionData } from "./types";
 /** /guide/[slug] 로 렌더링되는 심층 가이드 (새 글은 파일을 추가하고 여기에 등록하면 사이트맵·허브에 자동 반영) */
 export const GUIDES: Guide[] = [
   caseStudy,
+  rejection,
+  workflow,
+  uploadFix,
+  lessons,
   detailSplit,
   compression,
   taobao,
