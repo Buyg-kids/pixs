@@ -21,6 +21,9 @@ export function SiteHeader() {
           <Link href="/guide/fashion" className="hover:text-blue-600">
             패션
           </Link>
+          <Link href="/check" className="hover:text-blue-600">
+            검수기
+          </Link>
           <Link href="/about" className="hover:text-blue-600">
             서비스 소개
           </Link>
@@ -38,6 +41,9 @@ export function SiteFooter({ showMarketNote = false }: { showMarketNote?: boolea
     <footer className="border-t border-slate-200 bg-white">
       <div className="mx-auto max-w-3xl px-4 py-6 text-xs leading-relaxed text-slate-500">
         <nav aria-label="서비스 정보" className="flex flex-wrap items-center gap-x-5 gap-y-1.5 font-medium text-slate-600">
+          <Link href="/check" className="hover:text-blue-600 hover:underline">
+            대표이미지 검수기
+          </Link>
           <Link href="/about" className="hover:text-blue-600 hover:underline">
             서비스 소개
           </Link>

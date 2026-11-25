@@ -4113,6 +4113,9 @@ export default function Home() {
             </Link>
           </nav>
           <nav aria-label="서비스 정보" className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 font-medium">
+            <Link href="/check" className="hover:text-blue-600 hover:underline">
+              대표이미지 검수기
+            </Link>
             <Link href="/about" className="hover:text-blue-600 hover:underline">
               서비스 소개
             </Link>

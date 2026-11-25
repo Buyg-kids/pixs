@@ -39,6 +39,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    // 대표이미지 규격 검수기 (도구 페이지)
+    {
+      url: `${baseUrl}/check`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
     // 셀러 실전 가이드 (data/guides 에 등록된 글이 자동으로 포함됨)
     ...GUIDES.map((g) => ({
       url: `${baseUrl}/guide/${g.slug}`,

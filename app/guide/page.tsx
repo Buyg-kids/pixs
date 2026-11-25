@@ -47,6 +47,10 @@ export default function GuideHubPage() {
 
       <GuideCta position="top" />
 
+      <p className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 break-keep">
+        🔍 이미지를 올리기 전에 규격을 먼저 확인하고 싶다면 <Link href="/check" className="font-semibold text-blue-600 hover:underline">대표이미지 규격 검수기</Link>로 쿠팡 순백색 배경, 비율, 용량을 무료로 검사해 보세요.
+      </p>
+
       {ORDER.map((cat) => (
         <GuideSection key={cat} id={cat} title={CATEGORY_LABELS[cat].title}>
           <p className="text-slate-500">{CATEGORY_LABELS[cat].desc}</p>

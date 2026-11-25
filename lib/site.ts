@@ -7,7 +7,7 @@ export const ADSENSE_CLIENT = "ca-pub-1053588448767923";
 
 // 개인정보처리방침·이용약관·서비스 소개 하단 "문의" 항목에 노출되는 이메일.
 // 비워 두면 문의 항목이 표시되지 않으니, 애드센스 심사 전에 공개해도 되는 연락처를 넣어 주세요.
-export const CONTACT_EMAIL = "";
+export const CONTACT_EMAIL = "ayhkk1@gmail.com";
 
 // 약관·방침 시행일
 export const LEGAL_EFFECTIVE = "2026년 10월 12일";
